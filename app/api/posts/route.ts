@@ -1,23 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { parseJsonArray } from '@/lib/db-utils'
-import { auth } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import { Post, User, PostType } from '@prisma/client'
-import { Post as PostResponse } from '@/lib/types'
+import { ApiResponse } from '@/lib/types'
+import { ensureUserExists } from '@/lib/auth'
 
-export async function GET() {
+export const runtime = 'nodejs'
+
+export async function GET(
+  request: NextRequest,
+  context: { params: {} }
+): Promise<NextResponse> {
   try {
-    const { userId } = auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
+    const user = await ensureUserExists()
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     try {
@@ -37,18 +34,19 @@ export async function GET() {
         }
       })
 
-      const transformedPosts: PostResponse[] = posts.map(post => ({
+      const transformedPosts = posts.map(post => ({
         id: post.id,
         content: post.content,
         type: post.type,
-        mediaUrl: post.mediaUrl,
+        mediaUrl: post.mediaUrl ?? undefined,
         mediaUrls: post.mediaUrl ? [post.mediaUrl] : undefined,
         createdAt: post.createdAt,
+        shares: post.shares,
         author: {
           id: post.author.id,
-          name: post.author.name,
+          name: `${post.author.firstName || ''} ${post.author.lastName || ''}`.trim() || 'Anonymous',
           username: post.author.username,
-          avatar: post.author.avatar,
+          avatar: post.author.avatar ?? undefined,
         },
         likes: post.likes.map(like => ({ userId: like.userId })),
         _count: {
@@ -57,36 +55,32 @@ export async function GET() {
         },
       }))
 
-      return NextResponse.json(transformedPosts)
+      return NextResponse.json({ success: true, data: transformedPosts })
     } catch (dbError) {
-      console.error('Database error fetching posts:', dbError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      console.error('Database error fetching posts:', { error: dbError instanceof Error ? dbError.message : 'Unknown error' })
+      return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 })
     }
   } catch (error) {
-    console.error('Error in posts endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error in posts endpoint:', { error: error instanceof Error ? error.message : 'Unknown error' })
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: NextRequest,
+  context: { params: {} }
+): Promise<NextResponse> {
   try {
-    const { userId } = auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
+    const user = await ensureUserExists()
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { content, type = PostType.text, mediaUrl } = await request.json()
+    const { content, type: incomingType = 'TEXT', mediaUrl } = await request.json()
+    const type = PostType[incomingType.toUpperCase() as keyof typeof PostType]
 
     if (!content && !mediaUrl) {
-      return NextResponse.json({ error: 'Content is required' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Content is required' }, { status: 400 })
     }
 
     try {
@@ -94,7 +88,7 @@ export async function POST(request: Request) {
         data: {
           content,
           type,
-          mediaUrl,
+          mediaUrl: mediaUrl ?? null,
           author: {
             connect: { id: user.id },
           },
@@ -111,18 +105,19 @@ export async function POST(request: Request) {
         },
       })
 
-      const transformedPost: PostResponse = {
+      const transformedPost = {
         id: post.id,
         content: post.content,
         type: post.type,
-        mediaUrl: post.mediaUrl,
+        mediaUrl: post.mediaUrl ?? undefined,
         mediaUrls: post.mediaUrl ? [post.mediaUrl] : undefined,
         createdAt: post.createdAt,
+        shares: post.shares,
         author: {
           id: post.author.id,
-          name: post.author.name,
+          name: `${post.author.firstName || ''} ${post.author.lastName || ''}`.trim() || 'Anonymous',
           username: post.author.username,
-          avatar: post.author.avatar,
+          avatar: post.author.avatar ?? undefined,
         },
         likes: post.likes.map(like => ({ userId: like.userId })),
         _count: {
@@ -131,13 +126,13 @@ export async function POST(request: Request) {
         },
       }
 
-      return NextResponse.json(transformedPost)
+      return NextResponse.json({ success: true, data: transformedPost })
     } catch (dbError) {
       console.error('Database error creating post:', dbError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 })
     }
   } catch (error) {
     console.error('Error in create post endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 } 

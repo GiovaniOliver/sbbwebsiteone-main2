@@ -1,88 +1,171 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
+import { useState } from 'react'
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
 import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
 import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { FileText, Download, Share2, Folder, File } from 'lucide-react'
+import { Input } from '@/app/components/usersmaincomponents/homefeed/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
+import { Search, BookOpen, Trophy, Star, Clock } from 'lucide-react'
+import { useCourses } from '@/lib/hooks/use-courses'
+import { Badge } from '@/app/components/usersmaincomponents/homefeed/ui/badge'
 
-const files = [
-  {
-    name: "Project Documentation",
-    type: "folder",
-    items: 12,
-    lastModified: "2 days ago"
-  },
-  {
-    name: "Design Assets",
-    type: "folder",
-    items: 8,
-    lastModified: "5 days ago"
-  },
-  {
-    name: "Presentation.pptx",
-    type: "file",
-    size: "2.4 MB",
-    lastModified: "1 day ago"
-  },
-  {
-    name: "Report.pdf",
-    type: "file",
-    size: "1.8 MB",
-    lastModified: "3 hours ago"
-  },
-  // Add more files as needed
+const categories = [
+  'All',
+  'Business',
+  'Technology',
+  'Marketing',
+  'Personal Development',
+  'Leadership'
 ]
 
-export default function FilesPage() {
+const levels = [
+  'All Levels',
+  'Beginner',
+  'Intermediate',
+  'Advanced'
+]
+
+export default function SBBUniversityPage() {
+  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [selectedLevel, setSelectedLevel] = useState('All Levels')
+  const [searchQuery, setSearchQuery] = useState('')
+  
+  const { data: courses, isLoading } = useCourses({
+    category: selectedCategory === 'All' ? undefined : selectedCategory,
+    level: selectedLevel === 'All Levels' ? undefined : selectedLevel.toLowerCase(),
+    search: searchQuery
+  })
+
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50">
-
-        <div className="flex">
-          <main className="flex-1 p-4">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold">Files</h1>
-              <div className="space-x-2">
-                <Button variant="outline">New Folder</Button>
-                <Button>Upload File</Button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">SBB University</h1>
+              <p className="mt-2 text-gray-600">Expand your knowledge with our expert-led courses</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Input
+                  type="text"
+                  placeholder="Search courses..."
+                  className="pl-10 w-64"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {files.map((file, index) => (
-                <Card key={index} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      {file.type === 'folder' ? (
-                        <Folder className="h-10 w-10 text-blue-500" />
-                      ) : (
-                        <File className="h-10 w-10 text-gray-500" />
-                      )}
-                      <div>
-                        <h3 className="font-semibold">{file.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {file.type === 'folder' ? `${file.items} items` : file.size}
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                    <span className="text-sm text-gray-500">
-                      Modified {file.lastModified}
-                    </span>
-                    {file.type === 'file' && (
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              ))}
+          </div>
+
+          <Tabs defaultValue="courses" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="courses">All Courses</TabsTrigger>
+              <TabsTrigger value="my-courses">My Courses</TabsTrigger>
+              <TabsTrigger value="certificates">Certificates</TabsTrigger>
+            </TabsList>
+
+            <div className="flex space-x-4 mb-6">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
+                <select
+                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={selectedLevel}
+                  onChange={(e) => setSelectedLevel(e.target.value)}
+                >
+                  {levels.map((level) => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </main>
+
+            <TabsContent value="courses" className="space-y-6">
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <Card key={i} className="animate-pulse">
+                      <div className="h-48 bg-gray-200 rounded-t-lg" />
+                      <div className="p-4 space-y-3">
+                        <div className="h-6 bg-gray-200 rounded w-3/4" />
+                        <div className="h-4 bg-gray-200 rounded w-1/2" />
+                        <div className="h-4 bg-gray-200 rounded w-1/4" />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {courses?.map((course) => (
+                    <Card key={course.id} className="overflow-hidden">
+                      {course.thumbnail && (
+                        <img
+                          src={course.thumbnail}
+                          alt={course.title}
+                          className="w-full h-48 object-cover"
+                        />
+                      )}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="secondary">{course.category}</Badge>
+                          <Badge variant="outline">{course.level}</Badge>
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">{course.title}</h3>
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                          {course.description}
+                        </p>
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1" />
+                            {Math.round(course.duration / 60)} hours
+                          </div>
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 mr-1 text-yellow-400" />
+                            4.5 (128)
+                          </div>
+                        </div>
+                        <Button className="w-full mt-4">
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          Start Learning
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="my-courses">
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold">My Enrolled Courses</h2>
+                {/* Add enrolled courses content */}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="certificates">
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold">My Certificates</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Add certificates content */}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </Layout>

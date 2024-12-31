@@ -12,6 +12,13 @@ const nextConfig = {
     config.resolve.fallback = { fs: false };
     return config;
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000'],
+      bodySizeLimit: '2mb'
+    },
+    typedRoutes: true,
+  },
 };
 
 module.exports = nextConfig;

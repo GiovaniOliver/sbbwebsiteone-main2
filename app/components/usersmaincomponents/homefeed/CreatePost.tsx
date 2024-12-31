@@ -1,26 +1,26 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Card } from "../../ui/card"
-import { Button } from "../../ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar"
+import { Card } from "./ui/card"
+import { Button } from "./ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { ImageIcon, VideoIcon } from 'lucide-react'
 import { useUser } from '@/lib/hooks/useUser'
-import { usePosts } from '@/lib/hooks/usePosts'
-import { PostType } from '@/lib/types'
+import { PostType } from '@prisma/client'
+import Image from 'next/image'
 
 interface CreatePostProps {
   onPostCreated: () => void;
+  createPost: (content: string, type: PostType, mediaUrl?: string) => Promise<void>;
 }
 
-export default function CreatePost({ onPostCreated }: CreatePostProps) {
+export default function CreatePost({ onPostCreated, createPost }: CreatePostProps) {
   const [content, setContent] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
-  const [postType, setPostType] = useState<PostType>('text')
+  const [postType, setPostType] = useState<PostType>("TEXT")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { user } = useUser()
-  const { createPost } = usePosts()
+  const { data: user } = useUser()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +31,7 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
       await createPost(content, postType, mediaUrl || undefined)
       setContent('')
       setMediaUrl(null)
-      setPostType('text')
+      setPostType('TEXT')
       onPostCreated()
     } catch (error) {
       console.error('Error creating post:', error)
@@ -43,11 +43,9 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // In a real app, you would upload this file to a storage service
-      // and get back a URL. For now, we'll create a local URL
       const url = URL.createObjectURL(file)
       setMediaUrl(url)
-      setPostType(file.type.startsWith('image/') ? 'image' : 'video')
+      setPostType(file.type.startsWith('image/') ? 'IMAGE' : 'VIDEO')
     }
   }
 
@@ -67,13 +65,15 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
 
   if (!user) return null
 
+  const userInitial = user.firstName ? user.firstName[0] : 'U'
+
   return (
     <Card className="p-4">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-start space-x-4">
           <Avatar>
-            <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
-            <AvatarFallback>{user.fullName?.[0] || 'U'}</AvatarFallback>
+            <AvatarImage src={user.avatar || undefined} alt={`${user.firstName} ${user.lastName}`} />
+            <AvatarFallback>{userInitial}</AvatarFallback>
           </Avatar>
           <textarea
             value={content}
@@ -85,8 +85,15 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
 
         {mediaUrl && (
           <div className="relative">
-            {postType === 'image' ? (
-              <img src={mediaUrl} alt="Upload preview" className="max-h-60 rounded-lg object-cover" />
+            {postType === 'IMAGE' ? (
+              <div className="relative aspect-square">
+                <Image
+                  src={mediaUrl}
+                  alt="Upload preview"
+                  fill
+                  className="object-cover rounded-lg"
+                />
+              </div>
             ) : (
               <video src={mediaUrl} className="max-h-60 rounded-lg" controls />
             )}
@@ -97,7 +104,7 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
               className="absolute top-2 right-2"
               onClick={() => {
                 setMediaUrl(null)
-                setPostType('text')
+                setPostType('TEXT')
               }}
             >
               Remove
@@ -110,6 +117,8 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
           ref={fileInputRef}
           className="hidden"
           onChange={handleFileSelect}
+          aria-label="Upload media"
+          title="Upload photo or video"
         />
 
         <div className="flex items-center justify-between">

@@ -1,76 +1,198 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
-
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Calendar, MapPin, Users } from 'lucide-react'
-
-const events = [
-  {
-    title: "Web Development Meetup",
-    date: "Dec 15, 2023",
-    time: "6:00 PM",
-    location: "Tech Hub, Downtown",
-    attendees: 45,
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87"
-  },
-  {
-    title: "Design Workshop",
-    date: "Dec 18, 2023",
-    time: "2:00 PM",
-    location: "Creative Space",
-    attendees: 30,
-    image: "https://images.unsplash.com/photo-1531498860502-7c67cf02f657"
-  },
-  // Add more events as needed
-]
+import { useState } from 'react'
+import { useEvents } from '@/lib/hooks/useEvents'
+import { Button } from '@/app/components/ui/button'
+import { Input } from '@/app/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
+import { Calendar, MapPin, Users, Video } from 'lucide-react'
+import { format } from 'date-fns'
+import Link from 'next/link'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
+import { Skeleton } from '@/app/components/ui/skeleton'
 
 export default function EventsPage() {
+  const [search, setSearch] = useState('')
+  const [dateFilter, setDateFilter] = useState<'upcoming' | 'past' | 'today' | 'week' | 'month'>('upcoming')
+  const [isVirtual, setIsVirtual] = useState<boolean | undefined>(undefined)
+  const [page, setPage] = useState(1)
+
+  const { data, isLoading, error } = useEvents({
+    page,
+    limit: 12,
+    search,
+    date: dateFilter,
+    isVirtual,
+  })
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPage(1) // Reset page when searching
+  }
+
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          <main className="flex-1 p-4">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold">Events</h1>
-              <Button>Create Event</Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {events.map((event, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <img 
-                    src={event.image} 
-                    alt={event.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg mb-2">{event.title}</h3>
-                    <div className="space-y-2 text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {event.date} at {event.time}
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        {event.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-2" />
-                        {event.attendees} attending
-                      </div>
-                    </div>
-                    <div className="mt-4 flex space-x-2">
-                      <Button className="flex-1">Join</Button>
-                      <Button variant="outline" className="flex-1">Share</Button>
-                    </div>
+      <div className="container py-8">
+        <div className="flex flex-col gap-8">
+          {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Events</h1>
+            <p className="text-muted-foreground">
+              Discover and join upcoming events in your community
+            </p>
+          </div>
+          <Link href="/events/create">
+            <Button>Create Event</Button>
+          </Link>
+        </div>
+
+        {/* Filters */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <form onSubmit={handleSearch} className="md:col-span-2">
+            <Input
+              placeholder="Search events..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </form>
+          <Select value={dateFilter} onValueChange={(value: any) => setDateFilter(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+              <SelectItem value="past">Past</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={isVirtual?.toString() || 'all'}
+            onValueChange={(value) => setIsVirtual(value === 'all' ? undefined : value === 'true')}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Event type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              <SelectItem value="true">Virtual</SelectItem>
+              <SelectItem value="false">In Person</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>  
+
+        {/* Events Grid */}
+        {isLoading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
                   </div>
-                </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-500">
+            Failed to load events. Please try again later.
+          </div>
+        ) : data?.events.length === 0 ? (
+          <div className="text-center text-muted-foreground">
+            No events found. Try adjusting your filters.
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {data?.events.map((event) => (
+                <Link key={event.id} href={`/events/${event.id}`}>
+                  <Card className="hover:bg-accent/50 transition-colors">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>{event.name}</CardTitle>
+                        {event.isVirtual && <Video className="h-4 w-4 text-blue-500" />}
+                      </div>
+                      <CardDescription>
+                        {format(new Date(event.date), 'PPP')}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {event.location ? (
+                            <>
+                              <MapPin className="h-4 w-4" />
+                              <span>{event.location}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Video className="h-4 w-4" />
+                              <span>Virtual Event</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={event.organizer.avatar || undefined} />
+                              <AvatarFallback>
+                                {event.organizer.username?.[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{event.organizer.username}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            <span>{event._count?.attendees || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
-          </main>
-        </div>
+
+            {/* Pagination */}
+            {data?.pagination?.totalPages && data.pagination.totalPages > 1 && (
+              <div className="mt-8 flex justify-center gap-2">
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page === data.pagination.totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
+    </div>
     </Layout>
   )
-}
+};

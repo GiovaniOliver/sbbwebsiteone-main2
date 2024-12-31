@@ -1,42 +1,39 @@
-// Utility function to parse JSON string arrays
-export function parseJsonArray(jsonString: string | null): string[] {
-  if (!jsonString) return [];
+import { prisma } from './prisma'
+import { Post, User } from '@prisma/client'
+
+export async function getUser(userId: string) {
   try {
-    return JSON.parse(jsonString);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+    return user
   } catch (error) {
-    console.error('Error parsing JSON array:', error);
-    return [];
+    console.error('Error fetching user:', error)
+    throw new Error('Failed to fetch user')
   }
 }
 
-// Utility function to stringify arrays for storage
-export function stringifyArray(array: string[]): string {
-  return JSON.stringify(array);
-}
-
-// Type guard for string arrays
-export function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === 'string');
-}
-
-// Utility function to safely handle user badges
-export function parseBadges(badgesJson: string | null): string[] {
-  const badges = parseJsonArray(badgesJson);
-  return badges.filter(badge => typeof badge === 'string');
-}
-
-// Utility function to safely handle product images
-export function parseProductImages(imagesJson: string | null): string[] {
-  const images = parseJsonArray(imagesJson);
-  return images.filter(image => typeof image === 'string' && isValidImageUrl(image));
-}
-
-// Basic URL validation for images
-function isValidImageUrl(url: string): boolean {
+export async function createUser(userData: Partial<User>) {
   try {
-    new URL(url);
-    return url.match(/\.(jpg|jpeg|png|gif|webp)$/i) !== null;
-  } catch {
-    return false;
+    const user = await prisma.user.create({
+      data: userData as User,
+    })
+    return user
+  } catch (error) {
+    console.error('Error creating user:', error)
+    throw new Error('Failed to create user')
+  }
+}
+
+export async function updateUser(userId: string, userData: Partial<User>) {
+  try {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: userData,
+    })
+    return user
+  } catch (error) {
+    console.error('Error updating user:', error)
+    throw new Error('Failed to update user')
   }
 } 

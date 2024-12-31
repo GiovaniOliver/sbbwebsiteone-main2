@@ -1,8 +1,8 @@
 'use client'
-
+import { ClerkProvider } from '@clerk/nextjs'
 import { useAuth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { Toaster } from "@/app/components/usersmaincomponents/homefeed/ui/toaster"
+import { Toaster } from "@/app/components/ui/toaster"
 
 export default function ProtectedLayout({
   children,
@@ -26,9 +26,11 @@ export default function ProtectedLayout({
   }
 
   return (
-    <>
-      {children}
-      <Toaster />
-    </>
+    <ClerkProvider dynamic>
+      <>
+        {children}
+        <Toaster />
+      </>
+    </ClerkProvider>
   );
 } 

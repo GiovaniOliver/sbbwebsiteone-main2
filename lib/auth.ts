@@ -1,67 +1,86 @@
-import { auth } from '@clerk/nextjs'
+import { auth as clerkAuth } from '@clerk/nextjs/server'
 import { prisma } from './prisma'
 
-class AuthError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'AuthError'
+export async function ensureUserExists() {
+  try {
+    const { userId } = await clerkAuth()
+    if (!userId) return null
+
+    let user = await prisma.user.findUnique({
+      where: { clerkId: userId }
+    })
+
+    if (!user) {
+      // Create user directly using prisma
+      user = await prisma.user.create({
+        data: {
+          clerkId: userId,
+          firstName: 'New',
+          lastName: 'User',
+          username: `user_${userId.slice(-6)}`,
+          email: '',
+          avatar: '',
+          badges: '[]'
+        }
+      })
+    }
+
+    return user
+  } catch (error) {
+    console.error('Error ensuring user exists:', { error: error instanceof Error ? error.message : 'Unknown error' })
+    return null
   }
 }
 
 export async function getCurrentUser() {
-  const { userId } = auth()
-  
-  if (!userId) {
-    throw new AuthError('Unauthorized: No user ID found')
+  try {
+    const { userId } = await clerkAuth()
+
+    if (!userId) {
+      return null
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        clerkId: userId,
+      },
+    })
+
+    return user
+  } catch (error) {
+    console.error('Error getting current user:', { error: error instanceof Error ? error.message : 'Unknown error' })
+    return null
   }
-
-  const user = await prisma.user.findFirst({
-    where: { clerkId: userId }
-  })
-
-  if (!user) {
-    throw new AuthError('User not found in database')
-  }
-
-  return user
 }
 
 export async function requireAuth() {
+  const { userId } = await clerkAuth()
+
+  if (!userId) {
+    throw new Error('Authentication required')
+  }
+
+  return userId
+}
+
+export async function getUserProfile(userId: string) {
   try {
-    return await getCurrentUser()
-  } catch (error) {
-    console.error('Auth error:', error)
-    throw new AuthError('Unauthorized')
-  }
-}
-
-interface UserData {
-  name?: string
-  username?: string
-  email?: string
-  avatar?: string
-  bio?: string
-}
-
-export async function ensureUserExists(clerkId: string, userData: UserData) {
-  let user = await prisma.user.findFirst({
-    where: { clerkId }
-  })
-
-  if (!user) {
-    // Create user if they don't exist
-    user = await prisma.user.create({
-      data: {
-        clerkId,
-        name: userData.name || 'New User',
-        username: userData.username || `user_${clerkId.slice(-6)}`,
-        email: userData.email || '',
-        avatar: userData.avatar || '',
-        bio: userData.bio || '',
-        badges: '[]',
-      }
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        posts: true,
+      },
     })
-  }
 
-  return user
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    return user
+  } catch (error) {
+    console.error('Error getting user profile:', { error: error instanceof Error ? error.message : 'Unknown error' })
+    throw new Error('Failed to get user profile')
+  }
 } 

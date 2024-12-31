@@ -5,7 +5,7 @@ import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/usersmaincomponents/homefeed/ui/avatar'
 import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
-import { useToast } from '@/app/components/usersmaincomponents/homefeed/ui/use-toast'
+import { useToast } from '@/app/components/ui/use-toast'
 
 // Test data
 const friendRequests = [

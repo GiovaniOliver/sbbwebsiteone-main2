@@ -1,9 +1,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/usersmaincomponents/homefeed/ui/avatar"
 import { Button } from "@/app/components/usersmaincomponents/homefeed/ui/button"
 import { Input } from "@/app/components/usersmaincomponents/homefeed/ui/input"
-import { Bell, MessageSquare, Search } from 'lucide-react'
+import { MessageSquare, Search } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
+import { UserButton } from "@clerk/nextjs"
+import { NotificationDropdown } from "../notifications/NotificationDropdown"
 
 export default function Header() {
   return (
@@ -25,16 +27,18 @@ export default function Header() {
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <Input className="pl-8" placeholder="Search" />
           </div>
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <NotificationDropdown />
           <Button variant="ghost" size="icon">
             <MessageSquare className="h-5 w-5" />
           </Button>
-          <Avatar>
-            <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXZhdGFyfGVufDB8fDB8fHww" />
-            <AvatarFallback>JB</AvatarFallback>
-          </Avatar>
+          <UserButton 
+            afterSignOutUrl="/"
+            appearance={{
+              elements: {
+                avatarBox: "h-10 w-10"
+              }
+            }}
+          />
         </div>
       </div>
     </header>

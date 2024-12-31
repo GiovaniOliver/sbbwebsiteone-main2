@@ -8,7 +8,7 @@ import EducationalFocus from '@/app/components/guestpagecomponents/aboutcomponen
 import EmpoweringBusinesses from '@/app/components/guestpagecomponents/aboutcomponents/EmpoweringBusinesses';
 import Footer from '@/app/components/footer';
 import Introduction from '@/app/components/guestpagecomponents/aboutcomponents/Introduction';
-import { Navbar } from '@/app/components/navbar';
+import { Navbar } from '@/app/components/guestpagecomponents/homecomponents/NavbarGuest';
 import React from 'react';
 import Team from '@/app/components/guestpagecomponents/aboutcomponents/Team';
 import Vision from '@/app/components/guestpagecomponents/aboutcomponents/Vision';

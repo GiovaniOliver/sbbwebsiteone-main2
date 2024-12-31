@@ -1,13 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
+
+export const runtime = 'nodejs'
 
 export async function POST(
-  request: Request,
+  req: NextRequest,
   { params }: { params: { postId: string } }
-) {
+): Promise<NextResponse> {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -20,21 +22,14 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const { postId } = params
+    const bookmark = await prisma.bookmark.create({
+      data: {
+        post: { connect: { id: params.postId } },
+        user: { connect: { id: user.id } },
+      },
+    })
 
-    try {
-      const bookmark = await prisma.bookmark.create({
-        data: {
-          post: { connect: { id: postId } },
-          user: { connect: { id: user.id } },
-        },
-      })
-
-      return NextResponse.json({ success: true })
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
-    }
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error in bookmark endpoint:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -42,11 +37,11 @@ export async function POST(
 }
 
 export async function DELETE(
-  request: Request,
+  req: NextRequest,
   { params }: { params: { postId: string } }
-) {
+): Promise<NextResponse> {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -59,41 +54,36 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const { postId } = params
+    const bookmark = await prisma.bookmark.findFirst({
+      where: {
+        postId: params.postId,
+        userId: user.id,
+      },
+    })
 
-    try {
-      const bookmark = await prisma.bookmark.findFirst({
-        where: {
-          postId,
-          userId: user.id,
-        },
-      })
-
-      if (!bookmark) {
-        return NextResponse.json({ error: 'Bookmark not found' }, { status: 404 })
-      }
-
-      await prisma.bookmark.delete({
-        where: {
-          id: bookmark.id,
-        },
-      })
-
-      return NextResponse.json({ success: true })
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    if (!bookmark) {
+      return NextResponse.json({ error: 'Bookmark not found' }, { status: 404 })
     }
+
+    await prisma.bookmark.delete({
+      where: {
+        id: bookmark.id,
+      },
+    })
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error in unbookmark endpoint:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// Get user's bookmarked posts
-export async function GET() {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { postId: string } }
+): Promise<NextResponse> {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -1,140 +1,111 @@
-/* eslint-disable @next/next/no-img-element */
-import { Avatar, AvatarFallback, AvatarImage } from '../homefeed/ui/avatar'
-import { Button } from '../homefeed/ui/button'
-import { 
-  Settings, 
-  Share2, 
-  MapPin, 
-  Link as LinkIcon,
-  Calendar,
-  Edit
-} from 'lucide-react'
+'use client'
+
+import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/usersmaincomponents/homefeed/ui/avatar'
+import { MapPin, Link as LinkIcon, Calendar } from 'lucide-react'
+import { useFollow } from '@/lib/hooks/useFollow'
+import { useFollowLists } from '@/lib/hooks/useFollowLists'
+import { useUser } from '@/lib/hooks/useUser'
+import { Skeleton } from '@/app/components/usersmaincomponents/homefeed/ui/skeleton'
+import { Badge } from '@/app/components/usersmaincomponents/homefeed/ui/badge'
 
 interface ProfileHeaderProps {
-  user: {
-    name: string;
-    username: string;
-    avatar: string;
-    coverPhoto: string;
-    bio: string;
-    location?: string;
-    website?: string;
-    joinedDate: string;
-    stats: {
-      posts: number;
-      followers: number;
-      following: number;
-    };
-    badges: string[];
-  };
-  isOwnProfile?: boolean;
+  userId: string
+  isOwnProfile: boolean
 }
 
-export default function ProfileHeader({ user, isOwnProfile = true }: ProfileHeaderProps) {
-  return (
-    <div>
-      {/* Cover Photo */}
-      <div className="relative h-[300px] w-full mb-16">
-        <img
-          src={user.coverPhoto}
-          alt="Cover"
-          className="w-full h-full object-cover rounded-b-xl"
-        />
-        <div className="absolute -bottom-16 left-8 flex items-end gap-6">
-          <Avatar className="w-32 h-32 border-4 border-white rounded-full">
-            <AvatarImage src={user.avatar} />
-            <AvatarFallback>{user.name[0]}</AvatarFallback>
-          </Avatar>
-          <div className="mb-4 flex items-center gap-4">
-            {isOwnProfile ? (
-              <>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-                <Button variant="outline" size="icon">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  Follow
-                </Button>
-                <Button variant="outline">
-                  Message
-                </Button>
-              </>
-            )}
-            <Button variant="outline">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share Profile
-            </Button>
+export default function ProfileHeader({ userId, isOwnProfile }: ProfileHeaderProps) {
+  const { user: targetUser, isLoading: isLoadingUser } = useUser(userId)
+  const { followers, following } = useFollowLists({ userId })
+  const { isLoading: isLoadingFollow, toggleFollow, isFollowing } = useFollow({ 
+    userId, 
+    initialIsFollowing: false 
+  })
+
+  if (isLoadingUser) {
+    return (
+      <div className="relative">
+        <Skeleton className="w-full h-48" />
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-5">
+            <div className="flex justify-center sm:justify-start -mt-20 sm:-mt-16 mb-4 sm:mb-0">
+              <Skeleton className="h-32 w-32 rounded-full border-4 border-background" />
+            </div>
+            <div className="flex-1 text-center sm:text-left space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-20 w-full" />
+            </div>
           </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Profile Info */}
-      <div className="px-8 mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-            <p className="text-gray-600">{user.username}</p>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="text-xl font-bold text-gray-900">{user.stats.posts}</p>
-              <p className="text-sm text-gray-600">Posts</p>
-            </div>
-            <div className="text-center cursor-pointer hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors">
-              <p className="text-xl font-bold text-gray-900">{user.stats.followers.toLocaleString()}</p>
-              <p className="text-sm text-gray-600">Followers</p>
-            </div>
-            <div className="text-center cursor-pointer hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors">
-              <p className="text-xl font-bold text-gray-900">{user.stats.following.toLocaleString()}</p>
-              <p className="text-sm text-gray-600">Following</p>
-            </div>
-          </div>
-        </div>
+  if (!targetUser) {
+    return null
+  }
 
-        <div className="mt-4 space-y-3">
-          <p className="text-gray-800">{user.bio}</p>
-          
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-            {user.location && (
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                <span>{user.location}</span>
+  const joinedDate = new Date(targetUser.createdAt).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric'
+  })
+
+  return (
+    <div className="relative">
+      <div className="h-48 w-full bg-gradient-to-r from-blue-500 to-purple-500" />
+      <div className="max-w-6xl mx-auto px-8">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-5">
+          <div className="flex justify-center sm:justify-start -mt-20 sm:-mt-16 mb-4 sm:mb-0">
+            <Avatar className="h-32 w-32 rounded-full border-4 border-background">
+              <AvatarImage src={targetUser.avatar || undefined} />
+              <AvatarFallback>{targetUser.username?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </div>
+          <div className="flex-1 text-center sm:text-left space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">
+                  {targetUser.firstName} {targetUser.lastName}
+                </h1>
+                <p className="text-gray-500">@{targetUser.username}</p>
               </div>
-            )}
-            {user.website && (
-              <div className="flex items-center gap-1">
-                <LinkIcon className="h-4 w-4" />
-                <a 
-                  href={user.website} 
-                  className="text-blue-600 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {!isOwnProfile && (
+                <Button
+                  onClick={toggleFollow}
+                  disabled={isLoadingFollow}
+                  variant={isFollowing ? 'outline' : 'default'}
                 >
-                  {user.website}
-                </a>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              <span>Joined {user.joinedDate}</span>
+                  {isFollowing ? 'Unfollow' : 'Follow'}
+                </Button>
+              )}
             </div>
-          </div>
 
-          <div className="flex gap-2">
-            {user.badges.map((badge, index) => (
-              <span 
-                key={index}
-                className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-medium"
-              >
-                {badge}
-              </span>
-            ))}
+            <div className="flex flex-wrap gap-4 justify-center sm:justify-start text-sm text-gray-500">
+              {targetUser.web3WalletAddress && (
+                <Badge variant="secondary">Web3 Verified</Badge>
+              )}
+              {targetUser.userType && (
+                <Badge>{targetUser.userType}</Badge>
+              )}
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-1" />
+                Joined {joinedDate}
+              </div>
+            </div>
+
+            <div className="flex justify-center sm:justify-start space-x-6 text-sm">
+              <div>
+                <span className="font-semibold">{followers.length}</span>{' '}
+                <span className="text-gray-500">Followers</span>
+              </div>
+              <div>
+                <span className="font-semibold">{following.length}</span>{' '}
+                <span className="text-gray-500">Following</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

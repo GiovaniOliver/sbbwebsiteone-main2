@@ -1,6 +1,9 @@
+'use client'
+
 import { Card } from '../homefeed/ui/card'
 import { PlaySquare, Heart, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
+import { useQuery } from '@tanstack/react-query'
 
 interface Video {
   id: number;
@@ -12,11 +15,33 @@ interface Video {
 }
 
 interface VideoGridProps {
-  videos: Video[];
+  userId: string;
+  type: 'uploaded' | 'liked' | 'saved';
   emptyMessage?: string;
 }
 
-export default function VideoGrid({ videos, emptyMessage = "No videos to show" }: VideoGridProps) {
+export default function VideoGrid({ userId, type, emptyMessage = "No videos to show" }: VideoGridProps) {
+  const { data: videos = [], isLoading } = useQuery<Video[]>({
+    queryKey: ['videos', userId, type],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}/videos?type=${type}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch videos')
+      }
+      return response.json()
+    }
+  })
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="aspect-video bg-gray-200 animate-pulse rounded-xl" />
+        ))}
+      </div>
+    )
+  }
+
   if (videos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-gray-500">

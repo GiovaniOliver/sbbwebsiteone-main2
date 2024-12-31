@@ -1,6 +1,5 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,69 +9,335 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User and Authentication
-model User {
-  id          String    @id @default(cuid())
-  clerkId     String    @unique
-  name        String
-  username    String    @unique
-  email       String    @unique
-  avatar      String?
-  bio         String?   @db.Text
-  badges      String    @default("[]")
-  isVerified  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  posts       Post[]
-  comments    Comment[]
-  likes       Like[]
-  bookmarks   Bookmark[]
-  followers   Follow[]  @relation("Following")
-  following   Follow[]  @relation("Followers")
+enum PostType {
+  TEXT
+  IMAGE
+  VIDEO
+  LINK
 }
 
-// Social Features
-model Post {
-  id          String    @id @default(cuid())
-  content     String    @db.Text
-  mediaUrl    String?
-  type        PostType  @default(text)
-  author      User      @relation(fields: [authorId], references: [id])
-  authorId    String
-  likes       Like[]
-  comments    Comment[]
-  bookmarks   Bookmark[]
-  shares      Int       @default(0)
+enum UserType {
+  ADMIN
+  BUSINESS_OWNER
+  COMMUNITY_SUPPORTER
+  COMMUNITY_ORGANIZER
+  REGULAR_USER
+}
+
+// Business Owner tiers
+enum BusinessTier {
+  START_UP
+  GROWTH
+  BRANDER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+// Community Supporter 10-level hierarchy
+enum CommunitySupporterLevel {
+  COMMUNITY_SUPPORTERS
+  COMMUNITY_ADVOCATORS
+  COMMUNITY_COLLABORATORS
+  COMMUNITY_CURATORS
+  COMMUNITY_CONSTRUCTORS
+  COMMUNITY_INFLUENCERS
+  COMMUNITY_ADVISORS
+  COMMUNITY_INVESTORS
+  COMMUNITY_AMBASSADORS
+  COMMUNITY_PRESIDENT
+}
+
+// Community Organizer Levels (for community organization management)
+enum CommunityOrganizerLevel {
+  START_UP
+  AMBASSADOR
+  INVESTORS
+  FIRM
+}
+
+// Community Organization Roles (additional structure as requested)
+enum CommunityOrganizationRole {
+  INFLUENCER
+  ADVISOR
+  INVESTOR
+  AMBASSADOR
+  PRESIDENT
+}
+
+enum RSVPStatus {
+  GOING
+  MAYBE
+  NOT_GOING
+}
+
+enum NotificationType {
+  FOLLOW
+  LIKE
+  COMMENT
+  EVENT_REMINDER
+  EVENT_RSVP
+  EVENT_UPDATE
+  MENTION
+  POST_SHARE
+  GROUP_INVITE
+  GROUP_JOIN
+  MESSAGE_RECEIVED
+  ACHIEVEMENT_UNLOCKED
+  PROFILE_VISIT
+  MILESTONE_REACHED
+  SYSTEM_ANNOUNCEMENT
+}
+
+// Course Models
+model Course {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @db.Text
+  category    String
+  level       String      // beginner, intermediate, advanced
+  duration    Int         // in minutes
+  thumbnail   String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  instructorId String
+  instructor  User        @relation(fields: [instructorId], references: [id])
+  lessons     Lesson[]
+  quizzes     Quiz[]
+  enrollments Enrollment[]
+  discussions Discussion[]
+  reviews     CourseReview[]
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  videoUrl    String?
+  duration    Int      // in minutes
+  order       Int
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Quiz {
+  id          String     @id @default(cuid())
+  title       String
+  courseId    String
+  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  attempts    QuizAttempt[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  content     String
+  options     Json     // Array of options
+  correctAnswer String
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers     Json     // User's answers
+  score       Int
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress    Float    @default(0) // Percentage of course completed
+  completed   Boolean  @default(false)
+  certificate Certificate?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([lessonId, userId])
+}
+
+model Certificate {
+  id           String    @id @default(cuid())
+  enrollmentId String    @unique
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  issueDate    DateTime  @default(now())
+  certificateUrl String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Discussion {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  content     String   @db.Text
+  replies     DiscussionReply[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DiscussionReply {
+  id           String    @id @default(cuid())
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content      String    @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model CourseReview {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, userId])
+}
+
+model User {
+  id                        String                     @id @default(cuid())
+  clerkId                   String                     @unique
+  email                     String                     @unique
+  username                  String?                    @unique
+  firstName                 String?
+  lastName                  String?
+  avatar                    String?
+  reputationScore          Int                        @default(0)
+  web3WalletAddress        String?
+  web3Wallets              Json?                     // Stored as JSON array
+  role                     String?                    // General role (e.g. "admin", etc.)
+  badges                   Json?                     // Stored as JSON array
+  phoneNumbers             Json?                     // Stored as JSON array
+  emailAddresses           Json?                     // Stored as JSON array
+  externalAccounts         Json?
+
+  // User Type & Associated Levels
+  userType                  UserType?                  @default(REGULAR_USER)
+  businessTier              BusinessTier?
+  communitySupporterLevel   CommunitySupporterLevel?
+  communityOrganizerLevel   CommunityOrganizerLevel?
+  communityOrganizationRole CommunityOrganizationRole?
+
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+
+  // Relations
+  posts                     Post[]
+  comments                  Comment[]
+  likes                     Like[]
+  commentReactions          CommentReaction[]
+  items                     Item[] // For Business Owners who list items
+  events                    Event[] // Events organized by the user
   
+  // Following relationships
+  followers                 Follows[]                  @relation("following")
+  following                 Follows[]                  @relation("followers")
+
+  // Add these relations
+  rsvps        RSVP[]
+  attendances  Attendance[]
+
+  // Add notifications relation
+  notifications            Notification[]
+  notificationsSent       Notification[] @relation("NotificationFrom")
+
+  // Course-related relations
+  instructedCourses Course[]
+  enrollments      Enrollment[]
+  quizAttempts     QuizAttempt[]
+  lessonProgress   LessonProgress[]
+  discussions      Discussion[]
+  discussionReplies DiscussionReply[]
+  courseReviews    CourseReview[]
+
+  @@index([clerkId])
+  @@index([email])
+  @@index([username])
+}
+
+// Follows relation model
+model Follows {
+  follower    User      @relation("followers", fields: [followerId], references: [id])
+  followerId  String
+  following   User      @relation("following", fields: [followingId], references: [id])
+  followingId String
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  @@id([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Post {
+  id         String    @id @default(cuid())
+  content    String    @db.Text
+  type       PostType  @default(TEXT)
+  mediaUrl   String?   @db.Text
+  shares     Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId   String
+  likes      Like[]
+  comments   Comment[]
 
   @@index([authorId])
 }
 
-enum PostType {
-  text
-  image
-  video
-}
-
 model Comment {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  postId    String
-  userId    String
-  parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  content    String    @db.Text
+  parentId   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   // Relations
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  replies   Comment[] @relation("CommentReplies")
-  reactions CommentReaction[]
+  post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  reactions  CommentReaction[]
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies    Comment[] @relation("CommentReplies")
 
   @@index([postId])
   @@index([userId])
@@ -80,53 +345,142 @@ model Comment {
 }
 
 model Like {
-  id        String    @id @default(cuid())
-  post      Post      @relation(fields: [postId], references: [id])
-  postId    String
-  user      User      @relation(fields: [userId], references: [id])
-  userId    String
-  
-  createdAt DateTime  @default(now())
-  
-  @@unique([postId, userId])
-  @@index([userId])
-}
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
 
-model Bookmark {
-  id        String    @id @default(cuid())
-  post      Post      @relation(fields: [postId], references: [id])
+  // Relations
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
-  user      User      @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  
-  createdAt DateTime  @default(now())
-  
-  @@unique([postId, userId])
-  @@index([userId])
-}
 
-model Follow {
-  id          String    @id @default(cuid())
-  follower    User      @relation("Following", fields: [followerId], references: [id])
-  followerId  String
-  following   User      @relation("Followers", fields: [followingId], references: [id])
-  followingId String
-  createdAt   DateTime  @default(now())
-  
-  @@unique([followerId, followingId])
-  @@index([followerId])
-  @@index([followingId])
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
 }
 
 model CommentReaction {
-  id        String   @id @default(cuid())
-  type      String   // e.g., "like", "love", "laugh"
-  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  commentId String
-  userId    String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  type       String
+  createdAt  DateTime @default(now())
 
-  @@unique([commentId, userId, type])
+  // Relations
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId  String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+
+  @@unique([userId, commentId, type])
   @@index([commentId])
   @@index([userId])
-} 
+}
+
+model Marketplace {
+  id          String @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       Item[]
+}
+
+model Item {
+  id            String       @id @default(cuid())
+  name          String
+  description   String?      @db.Text
+  price         Int
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  marketplaceId String
+  marketplace   Marketplace  @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+
+  ownerId       String
+  owner         User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([marketplaceId])
+  @@index([ownerId])
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?   @db.Text
+  startDate     DateTime
+  endDate       DateTime
+  location      String
+  maxAttendees  Int?     // Optional max capacity
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  organizer     User      @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  organizerId   String
+  rsvps         RSVP[]
+  attendees     Attendance[]
+  notifications Notification[]
+
+  @@index([organizerId])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model RSVP {
+  id        String     @id @default(cuid())
+  status    RSVPStatus
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Attendance {
+  id          String   @id @default(cuid())
+  checkedInAt DateTime @default(now())
+  
+  // Relations
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      NotificationType
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  priority  String?  @default("normal") // For notification priority (high, normal, low)
+  metadata  Json?    // For additional notification-specific data
+  expiresAt DateTime? // For temporary notifications
+
+  // Relations
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromUserId String?
+  fromUser   User?    @relation("NotificationFrom", fields: [fromUserId], references: [id], onDelete: SetNull)
+  eventId    String?
+  event      Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([fromUserId])
+  @@index([eventId])
+  @@index([type])
+  @@index([createdAt])
+}

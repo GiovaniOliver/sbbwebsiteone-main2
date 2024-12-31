@@ -1,59 +1,68 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { ApiResponse } from '@/lib/types'
 
 export async function POST(
   req: Request,
   { params }: { params: { userId: string } }
 ) {
   try {
-    const { userId: clerkId } = auth()
+    const { userId: clerkId } = await auth()
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
 
-    const follower = await prisma.user.findUnique({
+    const currentUser = await prisma.user.findUnique({
       where: { clerkId }
     })
 
-    if (!follower) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (!currentUser) {
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'User not found'
+      }, { status: 404 })
     }
 
-    const following = await prisma.user.findUnique({
+    const targetUser = await prisma.user.findUnique({
       where: { id: params.userId }
     })
 
-    if (!following) {
-      return NextResponse.json({ error: 'User to follow not found' }, { status: 404 })
+    if (!targetUser) {
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Target user not found'
+      }, { status: 404 })
     }
 
-    // Check if already following
-    const existingFollow = await prisma.follow.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: follower.id,
-          followingId: following.id,
-        }
-      }
-    })
-
-    if (existingFollow) {
-      return NextResponse.json({ error: 'Already following' }, { status: 400 })
+    // Prevent self-following
+    if (currentUser.id === targetUser.id) {
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Cannot follow yourself'
+      }, { status: 400 })
     }
 
     // Create follow relationship
-    await prisma.follow.create({
+    await prisma.follows.create({
       data: {
-        followerId: follower.id,
-        followingId: following.id,
+        followerId: currentUser.id,
+        followingId: targetUser.id
       }
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json<ApiResponse<null>>({
+      success: true
+    }, { status: 200 })
   } catch (error) {
-    console.error('Error in follow endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Follow error:', error)
+    return NextResponse.json<ApiResponse<null>>({
+      success: false,
+      error: 'Failed to follow user'
+    }, { status: 500 })
   }
 }
 
@@ -62,46 +71,44 @@ export async function DELETE(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const { userId: clerkId } = auth()
+    const { userId: clerkId } = await auth()
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
 
-    const follower = await prisma.user.findUnique({
+    const currentUser = await prisma.user.findUnique({
       where: { clerkId }
     })
 
-    if (!follower) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (!currentUser) {
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'User not found'
+      }, { status: 404 })
     }
 
-    // Find and delete follow relationship
-    const follow = await prisma.follow.findUnique({
+    // Delete follow relationship
+    await prisma.follows.delete({
       where: {
         followerId_followingId: {
-          followerId: follower.id,
-          followingId: params.userId,
+          followerId: currentUser.id,
+          followingId: params.userId
         }
       }
     })
 
-    if (!follow) {
-      return NextResponse.json({ error: 'Not following' }, { status: 404 })
-    }
-
-    await prisma.follow.delete({
-      where: {
-        followerId_followingId: {
-          followerId: follower.id,
-          followingId: params.userId,
-        }
-      }
-    })
-
-    return NextResponse.json({ success: true })
+    return NextResponse.json<ApiResponse<null>>({
+      success: true
+    }, { status: 200 })
   } catch (error) {
-    console.error('Error in unfollow endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Unfollow error:', error)
+    return NextResponse.json<ApiResponse<null>>({
+      success: false,
+      error: 'Failed to unfollow user'
+    }, { status: 500 })
   }
 }
 
@@ -111,7 +118,7 @@ export async function GET(
   { params }: { params: { userId: string } }
 ) {
   try {
-    const { userId: clerkId } = auth()
+    const { userId: clerkId } = await auth()
     if (!clerkId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

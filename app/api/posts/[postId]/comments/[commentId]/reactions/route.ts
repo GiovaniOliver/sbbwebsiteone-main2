@@ -1,14 +1,18 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs'
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { CommentReaction } from '@prisma/client'
 
+type RouteContext = {
+  params: { postId: string; commentId: string }
+}
+
 export async function POST(
-  req: Request,
-  { params }: { params: { postId: string; commentId: string } }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -21,12 +25,12 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const { type } = await req.json()
+    const { type } = await request.json()
 
     // Check if reaction already exists
     const existingReaction = await prisma.commentReaction.findFirst({
       where: {
-        commentId: params.commentId,
+        commentId: context.params.commentId,
         userId: user.id,
         type,
       },
@@ -42,7 +46,7 @@ export async function POST(
       await prisma.commentReaction.create({
         data: {
           type,
-          commentId: params.commentId,
+          commentId: context.params.commentId,
           userId: user.id,
         },
       })
@@ -52,7 +56,7 @@ export async function POST(
     const reactions = await prisma.commentReaction.groupBy({
       by: ['type'],
       where: {
-        commentId: params.commentId,
+        commentId: context.params.commentId,
       },
       _count: true,
     })
@@ -65,11 +69,11 @@ export async function POST(
 }
 
 export async function GET(
-  req: Request,
-  { params }: { params: { postId: string; commentId: string } }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -85,14 +89,14 @@ export async function GET(
     const reactions = await prisma.commentReaction.groupBy({
       by: ['type'],
       where: {
-        commentId: params.commentId,
+        commentId: context.params.commentId,
       },
       _count: true,
     })
 
     const userReactions = await prisma.commentReaction.findMany({
       where: {
-        commentId: params.commentId,
+        commentId: context.params.commentId,
         userId: user.id,
       },
       select: {

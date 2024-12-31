@@ -1,76 +1,38 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
-import { PlaySquare, Heart, Bookmark } from 'lucide-react'
+import { PlaySquare, Heart, Bookmark, Users } from 'lucide-react'
 import ProfileHeader from '@/app/components/usersmaincomponents/profile/ProfileHeader'
 import VideoGrid from '@/app/components/usersmaincomponents/profile/VideoGrid'
-
-// Mock user data
-const userData = {
-  name: "Alex Thompson",
-  username: "@alexthompson",
-  avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36",
-  coverPhoto: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4",
-  bio: "Community Builder | Web3 Enthusiast | Building the future of decentralized social networks",
-  location: "San Francisco, CA",
-  website: "https://alexthompson.dev",
-  joinedDate: "January 2023",
-  stats: {
-    posts: 245,
-    followers: 12500,
-    following: 890
-  },
-  badges: ["Verified", "Core Contributor", "Top Creator"]
-}
-
-// Mock content data
-const userContent = {
-  videos: [
-    {
-      id: 1,
-      thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-      views: "12.5K",
-      duration: "2:30",
-      likes: "1.2K",
-      comments: "234"
-    },
-    {
-      id: 2,
-      thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f",
-      views: "8.2K",
-      duration: "3:45",
-      likes: "956",
-      comments: "167"
-    }
-  ],
-  liked: [
-    {
-      id: 3,
-      thumbnail: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2",
-      views: "5.7K",
-      duration: "1:30",
-      likes: "2.1K",
-      comments: "89"
-    }
-  ],
-  saved: [
-    {
-      id: 4,
-      thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-      views: "15.3K",
-      duration: "4:20",
-      likes: "3.4K",
-      comments: "445"
-    }
-  ]
-}
+import { FollowLists } from '@/app/components/usersmaincomponents/profile/FollowLists'
+import { useUser } from '@/lib/hooks/useUser'
+import { useParams } from 'next/navigation'
 
 export default function ProfilePage() {
+  const params = useParams()
+  const userId = typeof params.userId === 'string' ? params.userId : undefined
+  const { data: currentUser } = useUser()
+  const targetUserId = userId || currentUser?.id
+
+  if (!targetUserId) {
+    return (
+      <Layout>
+        <div className="max-w-6xl mx-auto p-8">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold">User not found</h2>
+            <p className="text-gray-500 mt-2">The user profile you're looking for doesn't exist.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
-        <ProfileHeader user={userData} isOwnProfile={true} />
+        <ProfileHeader userId={targetUserId} isOwnProfile={targetUserId === currentUser?.id} />
 
         {/* Content Tabs */}
         <Tabs defaultValue="videos" className="px-8">
@@ -87,27 +49,38 @@ export default function ProfilePage() {
               <Bookmark className="h-4 w-4" />
               Saved
             </TabsTrigger>
+            <TabsTrigger value="connections" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Connections
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="videos">
             <VideoGrid 
-              videos={userContent.videos} 
+              userId={targetUserId}
+              type="uploaded"
               emptyMessage="No videos uploaded yet" 
             />
           </TabsContent>
 
           <TabsContent value="liked">
             <VideoGrid 
-              videos={userContent.liked} 
+              userId={targetUserId}
+              type="liked"
               emptyMessage="No liked videos" 
             />
           </TabsContent>
 
           <TabsContent value="saved">
             <VideoGrid 
-              videos={userContent.saved} 
+              userId={targetUserId}
+              type="saved"
               emptyMessage="No saved videos" 
             />
+          </TabsContent>
+
+          <TabsContent value="connections">
+            <FollowLists userId={targetUserId} />
           </TabsContent>
         </Tabs>
       </div>

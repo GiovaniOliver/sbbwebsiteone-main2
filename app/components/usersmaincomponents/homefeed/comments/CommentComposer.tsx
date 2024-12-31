@@ -155,7 +155,7 @@ export default function CommentComposer({
             className="min-h-[100px] resize-none"
           />
 
-          {previewUrls.length > 0 && (
+          {previewUrls.length > 0 && ( 
             <div className="grid grid-cols-2 gap-2">
               {previewUrls.map((url, index) => (
                 <div key={index} className="relative">

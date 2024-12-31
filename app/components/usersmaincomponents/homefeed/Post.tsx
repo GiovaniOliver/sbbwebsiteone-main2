@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar"
-import { Button } from "../../ui/button"
-import { Card } from "../../ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Button } from "./ui/button"
+import { Card } from "./ui/card"
 import { Bookmark, MessageCircle, MoreHorizontal, Share2, ThumbsUp } from 'lucide-react'
 import Image from "next/image"
 import { useUser } from '@/lib/hooks/useUser'
@@ -31,12 +31,8 @@ export default function Post({ post, onLike, onUnlike }: PostProps) {
     setIsBookmarked(!isBookmarked);
   };
 
-  const formatDate = (dateString: string | Date) => {
+  const formatDate = (date: Date) => {
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return 'Invalid date';
-      }
       return new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: 'numeric',
@@ -51,7 +47,7 @@ export default function Post({ post, onLike, onUnlike }: PostProps) {
 
   // Calculate counts
   const likesCount = post._count?.likes ?? post.likes.length;
-  const commentsCount = post._count?.comments ?? 0;
+  const commentsCount = post._count?.comments ?? (post.comments?.length ?? 0);
 
   return (
     <Card className="mb-4 overflow-hidden">

@@ -1,33 +1,23 @@
 import Image from "next/image";
+import Link from 'next/link';
 // app/components/Header.tsx
 import React from "react";
 
-const Header = () => {
+const HeaderBlog = () => {
   return (
-    <header className="flex items-center justify-between p-8 bg-black">
-      <div className="flex items-center space-x-4">
-        <div className="bg-white mt-5">
-          <Image
-            src="/images/sbblogo.png" // replace this with the path to your logo
-            alt="Blog logo"
-            width={40}
-            height={40}
-          />
-        </div>
-        <h1 className="text-2xl text-white mt-5">SBB DAO Blog</h1>
+    <header className="w-full px-8 text-gray-700 bg-white">
+      <div className="container flex flex-col flex-wrap items-center justify-between py-5 mx-auto md:flex-row max-w-7xl">
+        <nav className="flex flex-wrap items-center mb-5 text-base md:mb-0 md:pl-8 md:ml-8 md:border-l md:border-gray-200">
+          <Link href="/blog" className="mr-5 hover:text-gray-900">
+            Blog
+          </Link>
+          <Link href="/sbbuniversity" className="mr-5 hover:text-gray-900">
+            SBB University
+          </Link>
+        </nav>
       </div>
-      <nav className="space-x-4 mt-8">
-        <a href="/blog" className="text-white">Blog</a>
-        <a href="/about" className="text-white">About Us</a>
-        <a href="/how-it-works" className="text-white">How It Works</a>
-        <a href="/features" className="text-white">Features</a>
-        <a href="/sbbuniversity" className="text-white">SBB University</a>
-        <a href="/contact" className="text-white">Contact</a>
-        
-        {/* add your other navigation links here */}
-      </nav>
     </header>
   );
 };
 
-export default Header;
+export default HeaderBlog;
