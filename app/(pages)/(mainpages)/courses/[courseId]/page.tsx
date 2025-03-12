@@ -4,13 +4,13 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
-import { Badge } from '@/app/components/usersmaincomponents/homefeed/ui/badge'
+import Layout from '@/app/components/usersmaincomponents/homefeed/layout'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
+import { Badge } from '@/app/components/ui/badge'
 import { BookOpen, Clock, Star, MessageSquare, Award } from 'lucide-react'
-import { useCourse } from '@/lib/hooks/use-course'
+import { useCourse } from '@/hooks/use-course'
 
 export default function CoursePage() {
   const { courseId } = useParams()

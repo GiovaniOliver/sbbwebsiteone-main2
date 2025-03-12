@@ -1,118 +1,138 @@
 'use client'
 
-import { Card } from '../homefeed/ui/card'
-import { PlaySquare, Heart, MessageCircle } from 'lucide-react'
-import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
-
-interface Video {
-  id: number;
-  thumbnail: string;
-  views: string;
-  duration: string;
-  likes?: string;
-  comments?: string;
-}
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Card } from '../../ui/shared/card'
+import { Skeleton } from '../../ui/shared/skeleton'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Eye, MessageCircle, ThumbsUp } from 'lucide-react'
 
 interface VideoGridProps {
-  userId: string;
-  type: 'uploaded' | 'liked' | 'saved';
-  emptyMessage?: string;
+  userId: string
+  type: 'uploaded' | 'liked' | 'saved'
+  emptyMessage: string
 }
 
-export default function VideoGrid({ userId, type, emptyMessage = "No videos to show" }: VideoGridProps) {
-  const { data: videos = [], isLoading } = useQuery<Video[]>({
+export default function VideoGrid({ userId, type, emptyMessage }: VideoGridProps) {
+  const supabase = createClientComponentClient()
+
+  const { data: videos = [], isLoading } = useQuery({
     queryKey: ['videos', userId, type],
     queryFn: async () => {
-      const response = await fetch(`/api/users/${userId}/videos?type=${type}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch videos')
+      let query = supabase
+        .from('videos')
+        .select(`
+          *,
+          author:users!user_id (*),
+          likes:video_likes (count),
+          comments:video_comments (count)
+        `)
+
+      if (type === 'uploaded') {
+        query = query.eq('user_id', userId)
+      } else if (type === 'liked') {
+        query = query.eq('video_likes.user_id', userId)
+      } else if (type === 'saved') {
+        query = query.eq('video_saves.user_id', userId)
       }
-      return response.json()
+
+      const { data } = await query.order('created_at', { ascending: false })
+      return data || []
     }
   })
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="aspect-video bg-gray-200 animate-pulse rounded-xl" />
+          <Card key={i} className="overflow-hidden">
+            <Skeleton className="aspect-video" />
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+          </Card>
         ))}
       </div>
     )
   }
 
-  if (videos.length === 0) {
+  if (!videos.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-        <PlaySquare className="h-12 w-12 mb-4" />
+      <div className="text-center py-12 text-gray-500">
         <p>{emptyMessage}</p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {videos.map((video) => (
-        <VideoCard key={video.id} video={video} />
+        <Link key={video.id} href={`/videos/${video.id}`}>
+          <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="aspect-video relative">
+              <Image
+                src={video.thumbnail_url}
+                alt={video.title}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-sm">
+                {formatDuration(video.duration)}
+              </div>
+            </div>
+            <div className="p-4">
+              <h3 className="font-semibold text-lg line-clamp-2">{video.title}</h3>
+              <p className="text-gray-500 text-sm mt-1">
+                {video.author.username} • {formatDate(video.created_at)}
+              </p>
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                <div className="flex items-center gap-1">
+                  <Eye className="h-4 w-4" />
+                  {formatNumber(video.view_count)}
+                </div>
+                <div className="flex items-center gap-1">
+                  <ThumbsUp className="h-4 w-4" />
+                  {formatNumber(video.likes.length)}
+                </div>
+                <div className="flex items-center gap-1">
+                  <MessageCircle className="h-4 w-4" />
+                  {formatNumber(video.comments.length)}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Link>
       ))}
     </div>
   )
 }
 
-function VideoCard({ video }: { video: Video }) {
-  return (
-    <Card className="group relative overflow-hidden rounded-xl cursor-pointer">
-      <div className="relative w-full aspect-video">
-        <Image 
-          src={video.thumbnail} 
-          alt="Video thumbnail"
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          priority={false}
-          quality={75}
-          unoptimized={video.thumbnail.startsWith('data:')} // Skip optimization for data URLs
-        />
-      </div>
-      
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4">
-              {video.likes && (
-                <div className="flex items-center gap-1">
-                  <Heart className="h-4 w-4" />
-                  <span>{video.likes}</span>
-                </div>
-              )}
-              {video.comments && (
-                <div className="flex items-center gap-1">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>{video.comments}</span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <PlaySquare className="h-4 w-4" />
-              <span>{video.views} views</span>
-            </div>
-          </div>
-        </div>
-      </div>
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
 
-      {/* Duration Badge */}
-      <div className="absolute top-2 right-2 px-2 py-1 bg-black/70 text-white text-xs rounded-md">
-        {video.duration}
-      </div>
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  })
+}
 
-      {/* Play Button Overlay */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-          <PlaySquare className="h-6 w-6 text-white" />
-        </div>
-      </div>
-    </Card>
-  )
+function formatNumber(num: number) {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`
+  }
+  return num.toString()
 } 

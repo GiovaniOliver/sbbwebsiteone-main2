@@ -1,11 +1,11 @@
 'use client'
 
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/dialog'
-import { Textarea } from '@/app/components/usersmaincomponents/homefeed/ui/textarea'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog'
+import { Textarea } from '@/app/components/ui/textarea'
 import { FileText, Filter, Search, Tag, Calendar, Users, ArrowRight } from 'lucide-react'
 
 // Mock data for proposals

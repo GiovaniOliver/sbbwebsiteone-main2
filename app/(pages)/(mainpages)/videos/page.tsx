@@ -1,11 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
+import Layout from '@/app/components/usersmaincomponents/homefeed/layout'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
 import { Play, ThumbsUp, MessageCircle, Share2, MoreHorizontal, ChevronRight } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/usersmaincomponents/homefeed/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
 
 const watchlist = [
   {

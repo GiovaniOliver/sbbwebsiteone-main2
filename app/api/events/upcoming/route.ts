@@ -1,54 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ApiResponse } from '@/lib/types'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { EventDbWithRelations, toEvent } from '../../../../backend/lib/types/event';
+import { ApiResponse } from '../../../../backend/lib/types/api';
 
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  
   try {
-    const { searchParams } = new URL(req.url)
-    const limit = Number(searchParams.get('limit')) || 5
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
 
-    const events = await prisma.event.findMany({
-      where: {
-        startDate: {
-          gte: new Date(),
-        },
-      },
-      include: {
-        organizer: true,
-        _count: {
-          select: {
-            attendees: true,
-          },
-        },
-      },
-      orderBy: {
-        startDate: 'asc',
-      },
-      take: limit,
-    })
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '5');
 
-    const formattedEvents = events.map((event) => ({
-      id: event.id,
-      title: event.title,
-      startDate: event.startDate?.toLocaleDateString() || 'Unknown Date',
-      location: event.location || 'Unknown Location',
-      organizer: {
-        id: event.organizer.id,
-        name: `${event.organizer.firstName || ''} ${event.organizer.lastName || ''}`.trim() || 'Unknown',
-        email: event.organizer.email
-      },
-      attendeeCount: event._count.attendees
-    }))
+    const now = new Date().toISOString();
+    const { data: events, error } = await supabase
+      .from('events')
+      .select(`
+        *,
+        organizer:users!events_organizer_id_fkey(*)
+      `)
+      .gte('start_date', now)
+      .order('start_date', { ascending: true })
+      .limit(limit);
 
-    return NextResponse.json<ApiResponse<typeof formattedEvents>>({
+    if (error) throw error;
+
+    const response: ApiResponse<typeof events> = {
       success: true,
-      data: formattedEvents
-    })
+      data: events.map(event => toEvent(event as EventDbWithRelations))
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error("[UPCOMING_EVENTS]", error)
-    return NextResponse.json<ApiResponse<null>>({
+    console.error('Error fetching upcoming events:', error);
+    const response: ApiResponse<null> = {
       success: false,
-      error: 'Failed to fetch upcoming events'
-    }, { status: 500 })
+      error: error instanceof Error ? error.message : 'Failed to fetch upcoming events'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 } 

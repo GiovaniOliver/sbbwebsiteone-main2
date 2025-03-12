@@ -1,130 +1,119 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/prisma'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { postId: string } }
-) {
-  try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+interface CommentReaction {
+  type: string;
+  users: {
+    id: string;
+  };
+}
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const comments = await prisma.comment.findMany({
-      where: {
-        postId: params.postId,
-        parentId: null, // Only get top-level comments
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            avatar: true,
-            isVerified: true,
-          },
-        },
-        reactions: true,
-        replies: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                avatar: true,
-                isVerified: true,
-              },
-            },
-            reactions: true,
-            _count: {
-              select: {
-                reactions: true,
-                replies: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            reactions: true,
-            replies: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
-
-    return NextResponse.json(comments)
-  } catch (error) {
-    console.error('Error fetching comments:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+interface Comment {
+  id: string;
+  content: string;
+  author: {
+    username: string;
+    avatar_url: string;
+  };
+  reactions: CommentReaction[];
 }
 
 export async function POST(
-  req: Request,
+  request: Request,
   { params }: { params: { postId: string } }
 ) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
+    const { content } = await request.json();
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const { content, parentId } = await req.json()
-
-    const comment = await prisma.comment.create({
-      data: {
+    const { data: comment, error: insertError } = await supabase
+      .from('comments')
+      .insert({
         content,
-        postId: params.postId,
-        userId: user.id,
-        parentId: parentId || null,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            avatar: true,
-            isVerified: true,
-          },
-        },
-        reactions: true,
-        _count: {
-          select: {
-            reactions: true,
-            replies: true,
-          },
-        },
-      },
-    })
+        post_id: params.postId,
+        author_id: session.user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select(`
+        *,
+        author:users!comments_author_id_fkey(
+          id,
+          username,
+          avatar_url
+        )
+      `)
+      .single();
 
-    return NextResponse.json(comment)
+    if (insertError) throw insertError;
+
+    return NextResponse.json(comment);
   } catch (error) {
-    console.error('Error creating comment:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error creating comment:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
-} 
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: { postId: string } }
+) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    const { data: comments, error } = await supabase
+      .from('comments')
+      .select(`
+        *,
+        author:users!comments_author_id_fkey(
+          id,
+          username,
+          avatar_url
+        ),
+        reactions:comment_reactions(
+          type,
+          users!comment_reactions_user_id_fkey(id)
+        )
+      `)
+      .eq('post_id', params.postId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Transform the data to match the expected format
+    const transformedComments = (comments as Comment[]).map(comment => ({
+      ...comment,
+      userName: comment.author.username,
+      userImage: comment.author.avatar_url,
+      reactions: Object.entries(
+        comment.reactions.reduce((acc: Record<string, number>, r: CommentReaction) => {
+          acc[r.type] = (acc[r.type] || 0) + 1;
+          return acc;
+        }, {})
+      ).map(([type, count]) => ({ type, count })),
+      userReactions: comment.reactions
+        .filter((r: CommentReaction) => r.users.id === session.user.id)
+        .map((r: CommentReaction) => r.type)
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data: transformedComments
+    });
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    return new Response('Internal Server Error', { status: 500 });
+  }
+}

@@ -1,134 +1,106 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ensureUserExists } from '@/lib/auth'
-import { auth } from '@clerk/nextjs'
-import { getAuth } from '@clerk/nextjs/server'
-import { ApiResponse } from '@/lib/types'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { EventDb, EventDbWithRelations, toEvent, CreateEventInput } from '../../../backend/lib/types/event';
+import { ApiResponse } from '../../../backend/lib/types/api';
 
-export async function POST(request: NextRequest) {
+// GET /api/events
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const past = searchParams.get('past') === 'true';
+  const search = searchParams.get('search');
+  const organizerId = searchParams.get('organizerId');
+
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const { userId: clerkId } = getAuth()
-    if (!clerkId) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Unauthorized'
-      }, { status: 401 })
+    let query = supabase
+      .from('events')
+      .select(`
+        *,
+        organizer:users!events_organizer_id_fkey(*)
+      `);
+
+    // Apply filters
+    if (past) {
+      query = query.lt('start_date', new Date().toISOString());
+    } else {
+      query = query.gte('start_date', new Date().toISOString());
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId }
-    })
-
-    if (!user) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
+    if (search) {
+      query = query.ilike('title', `%${search}%`);
     }
 
-    const body = await request.json()
-    const { title, description, location, startDate, endDate, maxAttendees } = body
+    if (organizerId) {
+      query = query.eq('organizer_id', organizerId);
+    }
 
-    const event = await prisma.event.create({
-      data: {
-        title,
-        description,
-        location,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        maxAttendees,
-        organizerId: user.id
-      }
-    })
+    const { data: events, error } = await query
+      .order('start_date', { ascending: !past });
 
-    return NextResponse.json<ApiResponse<typeof event>>({
+    if (error) throw error;
+
+    const response: ApiResponse<typeof events> = {
       success: true,
-      data: event
-    })
+      data: events.map(event => toEvent(event as EventDbWithRelations))
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Create event error:', error)
-    return NextResponse.json<ApiResponse<null>>({
+    console.error('Error fetching events:', error);
+    const response: ApiResponse<null> = {
       success: false,
-      error: 'Failed to create event'
-    }, { status: 500 })
+      error: error instanceof Error ? error.message : 'Failed to fetch events'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }
 
-export async function GET(request: NextRequest) {
+// POST /api/events
+export async function POST(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const { searchParams } = new URL(request.url)
-    const organizerId = searchParams.get('organizerId')
-    const attendeeId = searchParams.get('attendeeId')
-    const past = searchParams.get('past') === 'true'
-    const search = searchParams.get('search')
+    const json = await request.json();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
 
-    const where = {
-      AND: [
-        // Base conditions
-        {},
-        // Filter by organizer
-        organizerId ? { organizerId } : {},
-        // Filter by attendee
-        attendeeId ? {
-          rsvps: {
-            some: {
-              userId: attendeeId,
-              status: 'GOING'
-            }
-          }
-        } : {},
-        // Filter by date
-        past ? {
-          endDate: {
-            lt: new Date()
-          }
-        } : {
-          endDate: {
-            gte: new Date()
-          }
-        },
-        // Search by title or description
-        search ? {
-          OR: [
-            { title: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } }
-          ]
-        } : {}
-      ]
-    }
+    // Create event data with proper DB types
+    const eventData: CreateEventInput = {
+      title: json.title,
+      description: json.description,
+      start_date: new Date(json.startDate).toISOString(),
+      end_date: new Date(json.endDate).toISOString(),
+      location: json.location,
+      is_virtual: json.isVirtual,
+      organizer_id: user.id,
+      max_attendees: json.maxAttendees
+    };
 
-    const events = await prisma.event.findMany({
-      where,
-      include: {
-        organizer: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatar: true
-          }
-        },
-        _count: {
-          select: {
-            rsvps: true
-          }
-        }
-      },
-      orderBy: {
-        startDate: 'asc'
-      }
-    })
+    const { data: event, error } = await supabase
+      .from('events')
+      .insert(eventData)
+      .select(`
+        *,
+        organizer:users!events_organizer_id_fkey(*)
+      `)
+      .single();
 
-    return NextResponse.json<ApiResponse<typeof events>>({
+    if (error) throw error;
+
+    const response: ApiResponse<typeof event> = {
       success: true,
-      data: events
-    })
+      data: toEvent(event as EventDbWithRelations)
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Get events error:', error)
-    return NextResponse.json<ApiResponse<null>>({
+    console.error('Error creating event:', error);
+    const response: ApiResponse<null> = {
       success: false,
-      error: 'Failed to fetch events'
-    }, { status: 500 })
+      error: error instanceof Error ? error.message : 'Failed to create event'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 } 

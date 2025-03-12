@@ -1,145 +1,132 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@clerk/nextjs/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { ensureUserExists } from '@/backend/services/auth/auth.service'
+import { ApiResponse } from '@/backend/lib/types/api'
 
+// POST /api/posts/[postId]/like
 export async function POST(
-  request: Request,
+  req: Request,
   { params }: { params: { postId: string } }
 ) {
+  const supabase = createRouteHandlerClient({ cookies })
+  
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
+    const user = await ensureUserExists()
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
 
-    const { postId } = params
-
-    // Verify post exists
-    const post = await prisma.post.findUnique({
-      where: { id: postId }
-    })
+    // Check if post exists
+    const { data: post } = await supabase
+      .from('posts')
+      .select()
+      .eq('id', params.postId)
+      .single()
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Post not found'
+      }, { status: 404 })
     }
 
-    try {
-      // Check if like already exists
-      const existingLike = await prisma.like.findFirst({
-        where: {
-          postId,
-          userId: user.id,
-        },
-      })
+    // Check if already liked
+    const { data: existingLike } = await supabase
+      .from('likes')
+      .select()
+      .eq('user_id', user.id)
+      .eq('post_id', params.postId)
+      .single()
 
-      if (existingLike) {
-        return NextResponse.json({ error: 'Already liked' }, { status: 400 })
-      }
-
-      // Create like
-      const like = await prisma.like.create({
-        data: {
-          post: { connect: { id: postId } },
-          user: { connect: { id: user.id } },
-        },
-        include: {
-          post: {
-            include: {
-              _count: {
-                select: {
-                  likes: true,
-                  comments: true,
-                  bookmarks: true,
-                },
-              },
-            },
-          },
-        },
-      })
-
-      return NextResponse.json({
-        success: true,
-        likeCount: like.post._count.likes,
-      })
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    if (existingLike) {
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Post already liked'
+      }, { status: 400 })
     }
+
+    // Create like
+    const { error } = await supabase
+      .from('likes')
+      .insert({
+        post_id: params.postId,
+        user_id: user.id,
+        created_at: new Date().toISOString()
+      })
+
+    if (error) throw error
+
+    // Get updated post with like count
+    const { data: updatedPost } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        likes:likes(count)
+      `)
+      .eq('id', params.postId)
+      .single()
+
+    return NextResponse.json<ApiResponse<typeof updatedPost>>({
+      success: true,
+      data: updatedPost
+    })
   } catch (error) {
-    console.error('Error in like endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('[POST_LIKE_POST]', error)
+    return NextResponse.json<ApiResponse<null>>({
+      success: false,
+      error: 'Failed to like post'
+    }, { status: 500 })
   }
 }
 
+// DELETE /api/posts/[postId]/like
 export async function DELETE(
-  request: Request,
+  req: Request,
   { params }: { params: { postId: string } }
 ) {
+  const supabase = createRouteHandlerClient({ cookies })
+  
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
+    const user = await ensureUserExists()
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json<ApiResponse<null>>({
+        success: false,
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
 
-    const { postId } = params
+    // Delete like
+    const { error } = await supabase
+      .from('likes')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('post_id', params.postId)
 
-    try {
-      // Find and delete like
-      const like = await prisma.like.findFirst({
-        where: {
-          postId,
-          userId: user.id,
-        },
-      })
+    if (error) throw error
 
-      if (!like) {
-        return NextResponse.json({ error: 'Like not found' }, { status: 404 })
-      }
+    // Get updated post with like count
+    const { data: updatedPost } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        likes:likes(count)
+      `)
+      .eq('id', params.postId)
+      .single()
 
-      await prisma.like.delete({
-        where: {
-          id: like.id,
-        },
-      })
-
-      // Get updated like count
-      const updatedPost = await prisma.post.findUnique({
-        where: { id: postId },
-        include: {
-          _count: {
-            select: {
-              likes: true,
-            },
-          },
-        },
-      })
-
-      return NextResponse.json({
-        success: true,
-        likeCount: updatedPost?._count.likes || 0,
-      })
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
-    }
+    return NextResponse.json<ApiResponse<typeof updatedPost>>({
+      success: true,
+      data: updatedPost
+    })
   } catch (error) {
-    console.error('Error in unlike endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('[POST_LIKE_DELETE]', error)
+    return NextResponse.json<ApiResponse<null>>({
+      success: false,
+      error: 'Failed to unlike post'
+    }, { status: 500 })
   }
-} 
+}

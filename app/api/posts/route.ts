@@ -1,138 +1,107 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@clerk/nextjs/server'
-import { Post, User, PostType } from '@prisma/client'
-import { ApiResponse } from '@/lib/types'
-import { ensureUserExists } from '@/lib/auth'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { PostDbWithRelations, toPostWithRelations, CreatePostInput } from '../../../backend/lib/types/post';
+import { ApiResponse } from '../../../backend/lib/types/api';
 
-export const runtime = 'nodejs'
+// GET /api/posts
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+  const { searchParams } = new URL(request.url);
+  const authorId = searchParams.get('authorId');
 
-export async function GET(
-  request: NextRequest,
-  context: { params: {} }
-): Promise<NextResponse> {
   try {
-    const user = await ensureUserExists()
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
+
+    let query = supabase
+      .from('posts')
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(*),
+        likes:post_likes(count),
+        replies:post_replies(count)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (authorId) {
+      query = query.eq('author_id', authorId);
     }
 
-    try {
-      const posts = await prisma.post.findMany({
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          author: true,
-          likes: true,
-          _count: {
-            select: {
-              likes: true,
-              comments: true,
-            }
-          }
-        }
-      })
+    const { data: posts, error } = await query;
 
-      const transformedPosts = posts.map(post => ({
-        id: post.id,
-        content: post.content,
-        type: post.type,
-        mediaUrl: post.mediaUrl ?? undefined,
-        mediaUrls: post.mediaUrl ? [post.mediaUrl] : undefined,
-        createdAt: post.createdAt,
-        shares: post.shares,
-        author: {
-          id: post.author.id,
-          name: `${post.author.firstName || ''} ${post.author.lastName || ''}`.trim() || 'Anonymous',
-          username: post.author.username,
-          avatar: post.author.avatar ?? undefined,
-        },
-        likes: post.likes.map(like => ({ userId: like.userId })),
+    if (error) throw error;
+
+    const response: ApiResponse<typeof posts> = {
+      success: true,
+      data: posts.map(post => toPostWithRelations({
+        ...post,
         _count: {
-          likes: post._count.likes,
-          comments: post._count.comments,
-        },
-      }))
+          likes: post.likes[0]?.count || 0,
+          replies: post.replies[0]?.count || 0
+        }
+      } as PostDbWithRelations))
+    };
 
-      return NextResponse.json({ success: true, data: transformedPosts })
-    } catch (dbError) {
-      console.error('Database error fetching posts:', { error: dbError instanceof Error ? dbError.message : 'Unknown error' })
-      return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 })
-    }
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Error in posts endpoint:', { error: error instanceof Error ? error.message : 'Unknown error' })
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+    console.error('Error fetching posts:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch posts'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  context: { params: {} }
-): Promise<NextResponse> {
+// POST /api/posts
+export async function POST(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const user = await ensureUserExists()
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
+    const json = await request.json();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
 
-    const { content, type: incomingType = 'TEXT', mediaUrl } = await request.json()
-    const type = PostType[incomingType.toUpperCase() as keyof typeof PostType]
+    // Create post data with proper DB types
+    const postData: CreatePostInput = {
+      content: json.content,
+      author_id: user.id,
+      parent_id: json.parentId || null,
+      root_id: json.rootId || null
+    };
 
-    if (!content && !mediaUrl) {
-      return NextResponse.json({ success: false, error: 'Content is required' }, { status: 400 })
-    }
+    const { data: post, error } = await supabase
+      .from('posts')
+      .insert(postData)
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(*),
+        likes:post_likes(count),
+        replies:post_replies(count)
+      `)
+      .single();
 
-    try {
-      const post = await prisma.post.create({
-        data: {
-          content,
-          type,
-          mediaUrl: mediaUrl ?? null,
-          author: {
-            connect: { id: user.id },
-          },
-        },
-        include: {
-          author: true,
-          likes: true,
-          _count: {
-            select: {
-              likes: true,
-              comments: true,
-            },
-          },
-        },
-      })
+    if (error) throw error;
 
-      const transformedPost = {
-        id: post.id,
-        content: post.content,
-        type: post.type,
-        mediaUrl: post.mediaUrl ?? undefined,
-        mediaUrls: post.mediaUrl ? [post.mediaUrl] : undefined,
-        createdAt: post.createdAt,
-        shares: post.shares,
-        author: {
-          id: post.author.id,
-          name: `${post.author.firstName || ''} ${post.author.lastName || ''}`.trim() || 'Anonymous',
-          username: post.author.username,
-          avatar: post.author.avatar ?? undefined,
-        },
-        likes: post.likes.map(like => ({ userId: like.userId })),
+    const response: ApiResponse<typeof post> = {
+      success: true,
+      data: toPostWithRelations({
+        ...post,
         _count: {
-          likes: post._count.likes,
-          comments: post._count.comments,
-        },
-      }
+          likes: post.likes[0]?.count || 0,
+          replies: post.replies[0]?.count || 0
+        }
+      } as PostDbWithRelations)
+    };
 
-      return NextResponse.json({ success: true, data: transformedPost })
-    } catch (dbError) {
-      console.error('Database error creating post:', dbError)
-      return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 })
-    }
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Error in create post endpoint:', error)
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+    console.error('Error creating post:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create post'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
-} 
+}

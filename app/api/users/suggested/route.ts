@@ -1,38 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ensureUserExists } from '@/lib/auth'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const currentUser = await ensureUserExists()
-    if (!currentUser) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    // Get 5 random users excluding the current user
-    const suggestedUsers = await prisma.user.findMany({
-      where: {
-        id: { not: currentUser.id },
-        // Add any other filters (e.g., not already following)
-      },
-      select: {
-        id: true,
-        username: true,
-        avatar: true,
-        userType: true,
-      },
-      take: 5,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .neq('id', session.user.id)
+      .limit(5);
 
-    return NextResponse.json({ success: true, data: suggestedUsers })
+    if (error) throw error;
+
+    return NextResponse.json(users);
   } catch (error) {
-    console.error('Error fetching suggested users:', { error: error instanceof Error ? error.message : 'Unknown error' })
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch suggested users' },
-      { status: 500 }
-    )
+    console.error('Error fetching suggested users:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 } 

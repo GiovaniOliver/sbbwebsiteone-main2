@@ -1,36 +1,29 @@
 'use client'
-import { ClerkProvider } from '@clerk/nextjs'
-import { useAuth } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
-import { Toaster } from "@/app/components/ui/toaster"
 
-export default function ProtectedLayout({
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { redirect } from "next/navigation";
+import { useEffect } from 'react';
+
+export default function MainLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  const { isLoaded, userId } = useAuth();
+  const supabase = createClientComponentClient();
 
-  // Handle loading state
-  if (!isLoaded) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        redirect('/sign-in');
+      }
+    };
+    checkAuth();
+  }, [supabase.auth]);
 
-  // If user is not authenticated, redirect to sign-in page
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
-  return (
-    <ClerkProvider dynamic>
-      <>
-        {children}
-        <Toaster />
-      </>
-    </ClerkProvider>
-  );
+  return <div className="min-h-screen bg-gray-50">
+    <div className="pt-16">
+      {children}
+    </div>
+  </div>;
 } 

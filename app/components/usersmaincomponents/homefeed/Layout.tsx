@@ -1,21 +1,24 @@
-import Header from './Header'
-import LeftSidebar from './LeftSidebar'
-import RightSidebar from './RightSidebar'
+'use client'
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+import Header from './header'
+import LeftSidebar from './left-sidebar'
+import { cn } from '@/backend/lib/utils/utils'
+
+interface LayoutProps {
+  children: React.ReactNode
+  className?: string
+}
+
+export default function Layout({ children, className }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0B1218]">
       <Header />
-      <div className="flex">
+      <div className="flex pt-16">
         <LeftSidebar />
-        <main className="flex-1 p-6">
-          <div className="max-w-3xl mx-auto">
-            {children}
-          </div>
+        <main className={cn("flex-1 p-6 overflow-auto", className)}>
+          {children}
         </main>
-        <RightSidebar />
       </div>
     </div>
   )
-}
-
+} 

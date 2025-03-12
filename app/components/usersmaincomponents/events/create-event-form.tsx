@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useEvents } from '@/app/hooks/useEvents'
 import { Button } from '@/app/components/ui/button'
 import { Input } from '@/app/components/ui/input'
 import { Textarea } from '@/app/components/ui/textarea'
@@ -9,213 +10,158 @@ import { Switch } from '@/app/components/ui/switch'
 import { Label } from '@/app/components/ui/label'
 import { toast } from '@/app/components/ui/use-toast'
 import { Calendar } from '@/app/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover'
-import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/app/components/ui/popover'
+import { cn } from '@/backend/lib/utils/utils'
 import { CalendarIcon } from 'lucide-react'
 
 export function CreateEventForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [location, setLocation] = useState('')
-  const [isVirtual, setIsVirtual] = useState(false)
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
-  const [maxAttendees, setMaxAttendees] = useState('')
-
   const router = useRouter()
+  const { createEvent } = useEvents()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [date, setDate] = useState<Date>()
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    location: '',
+    isVirtual: false,
+    maxAttendees: '',
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!title || !description || !startDate || !endDate) {
+    if (!date) {
       toast({
         title: 'Error',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    if (endDate < startDate) {
-      toast({
-        title: 'Error',
-        description: 'End date must be after start date.',
+        description: 'Please select an event date',
         variant: 'destructive',
       })
       return
     }
 
     try {
-      setIsLoading(true)
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          location: isVirtual ? null : location,
-          isVirtual,
-          startDate,
-          endDate,
-          maxAttendees: maxAttendees ? parseInt(maxAttendees) : null,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to create event')
+      setIsSubmitting(true)
+      const eventData = {
+        title: formData.title,
+        description: formData.description,
+        start_date: date.toISOString(),
+        end_date: date.toISOString(), // For now, end date is same as start date
+        location: formData.location || null,
+        is_virtual: formData.isVirtual,
+        organizer_id: '', // This will be set by the server
+        max_attendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : null,
       }
-
+      
+      const event = await createEvent(eventData)
       toast({
         title: 'Success',
-        description: 'Event created successfully.',
-      })
-
-      router.push(`/events/${data.data.id}`)
-      router.refresh()
-    } catch (error) {
-      console.error('Create event error:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to create event. Please try again.',
+            // Start of Selection
+            description: 'Event created successfully',
+          })
+          router.push('/events')
+        } catch (error) {
+          toast({
+            title: 'Error',
+            description: 'Failed to create event. Please try again.',
         variant: 'destructive',
       })
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <label htmlFor="title" className="text-sm font-medium">
-          Title *
-        </label>
+        <Label htmlFor="title">Event Title</Label>
         <Input
           id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          disabled={isLoading}
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           required
+          placeholder="Enter event title"
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="description" className="text-sm font-medium">
-          Description *
-        </label>
+        <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          disabled={isLoading}
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           required
+          placeholder="Describe your event"
+          rows={4}
         />
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="virtual"
-          checked={isVirtual}
-          onCheckedChange={setIsVirtual}
-          disabled={isLoading}
-        />
-        <label htmlFor="virtual" className="text-sm font-medium">
-          Virtual Event
-        </label>
+      <div className="space-y-2">
+        <Label>Event Date</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                'w-full justify-start text-left font-normal',
+                !date && 'text-muted-foreground'
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, 'PPP') : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
-      {!isVirtual && (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="isVirtual">Virtual Event</Label>
+          <Switch
+            id="isVirtual"
+            checked={formData.isVirtual}
+            onCheckedChange={(checked) => setFormData({ ...formData, isVirtual: checked })}
+          />
+        </div>
+      </div>
+
+      {!formData.isVirtual && (
         <div className="space-y-2">
-          <label htmlFor="location" className="text-sm font-medium">
-            Location
-          </label>
+          <Label htmlFor="location">Location</Label>
           <Input
             id="location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            disabled={isLoading}
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            placeholder="Enter event location"
           />
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Start Date & Time *</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !startDate && 'text-muted-foreground'
-                )}
-                disabled={isLoading}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, 'PPP') : 'Pick a date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={setStartDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">End Date & Time *</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !endDate && 'text-muted-foreground'
-                )}
-                disabled={isLoading}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, 'PPP') : 'Pick a date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={setEndDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
       <div className="space-y-2">
-        <label htmlFor="maxAttendees" className="text-sm font-medium">
-          Maximum Attendees (Optional)
-        </label>
+        <Label htmlFor="maxAttendees">Maximum Attendees (Optional)</Label>
         <Input
           id="maxAttendees"
           type="number"
+          value={formData.maxAttendees}
+          onChange={(e) => setFormData({ ...formData, maxAttendees: e.target.value })}
+          placeholder="Leave blank for unlimited"
           min="1"
-          value={maxAttendees}
-          onChange={(e) => setMaxAttendees(e.target.value)}
-          disabled={isLoading}
         />
       </div>
 
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Creating...' : 'Create Event'}
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? 'Creating Event...' : 'Create Event'}
       </Button>
     </form>
   )

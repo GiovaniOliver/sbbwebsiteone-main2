@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unescaped-entities */
 import React from 'react';
-import Layout from '@/app/components/usersmaincomponents/homefeed/Layout';
+import Layout from '@/app/components/usersmaincomponents/homefeed/layout';
 import { MessageCircle } from 'lucide-react';
 
 const Conversation: React.FC = () => {

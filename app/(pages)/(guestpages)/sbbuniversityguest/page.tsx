@@ -1,17 +1,17 @@
 'use client'
 
-import CommunityEngagementSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/CommunityEngagementSbbUni';
-import ContactSupport from '@/app/components/guestpagecomponents/sbbuniversitycomponents/ContactSupportSbbUni';
-import CourseOfferingsSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/CourseOfferingsSbbUni';
-import CourseScheduleRegistrationSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/CourseScheduleRegistrationSbbUni';
-import FacultyInstructorsSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/FacultyInstructorsSbbUni';
+import CommunityEngagementSbbUni from '@/app/components/guestpagecomponents/CommunityEngagementSbbUni';
+import ContactSupport from '@/app/components/guestpagecomponents/ContactSupportSbbUni';
+import CourseOfferingsSbbUni from '@/app/components/guestpagecomponents/CourseOfferingsSbbUni';
+import CourseScheduleRegistrationSbbUni from '@/app/components/guestpagecomponents/CourseScheduleRegistrationSbbUni';
+import FacultyInstructorsSbbUni from '@/app/components/guestpagecomponents/FacultyInstructorsSbbUni';
 import Head from 'next/head';
-import IntroductionSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/IntroductionSbbUni';
-import LearningResourcesSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/LearningResourcesSbbUni';
-import { Navbar } from '@/app/components/guestpagecomponents/homecomponents/NavbarGuest';
-import PartnershipsCollaborationsSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/PartnershipsCollaborationsSbbUni';
+import IntroductionSbbUni from '@/app/components/guestpagecomponents/IntroductionSbbUni';
+import LearningResourcesSbbUni from '@/app/components/guestpagecomponents/LearningResourcesSbbUni';
+import { Navbar } from '@/app/components/guestpagecomponents/NavbarGuest';
+import PartnershipsCollaborationsSbbUni from '@/app/components/guestpagecomponents/PartnershipsCollaborationsSbbUni';
 import React from 'react';
-import StudentSuccessStoriesSbbUni from '@/app/components/guestpagecomponents/sbbuniversitycomponents/StudentSuccessStoriesSbbUni';
+import StudentSuccessStoriesSbbUni from '@/app/components/guestpagecomponents/StudentSuccessStoriesSbbUni';
 
 const SBBUniversity: React.FC = () => {
     return (

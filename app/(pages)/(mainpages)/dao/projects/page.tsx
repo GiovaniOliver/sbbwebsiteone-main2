@@ -1,9 +1,9 @@
 'use client'
 
-import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/usersmaincomponents/homefeed/ui/avatar'
+import Layout from '@/app/components/usersmaincomponents/homefeed/layout'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
 import { Search, Plus, Calendar, CheckCircle2, Clock, AlertCircle, BarChart3, Target, Layers } from 'lucide-react'
 
 // Mock data for projects

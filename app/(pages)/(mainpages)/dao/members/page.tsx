@@ -1,10 +1,10 @@
 'use client'
 
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/usersmaincomponents/homefeed/ui/avatar'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
 import { Search, Shield, Star, Users, UserPlus, BarChart3, Trophy } from 'lucide-react'
 
 // Mock data for members

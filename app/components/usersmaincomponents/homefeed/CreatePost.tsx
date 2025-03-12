@@ -1,156 +1,180 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Card } from "./ui/card"
-import { Button } from "./ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { ImageIcon, VideoIcon } from 'lucide-react'
-import { useUser } from '@/lib/hooks/useUser'
-import { PostType } from '@prisma/client'
+import { Avatar, AvatarFallback, AvatarImage } from "../../ui/shared/avatar"
+import { Button } from "../../ui/button"
+import { Card } from "../../ui/card"
+import { Textarea } from "../../ui/textarea"
+import { Image as ImageIcon, Video, FileText, X } from 'lucide-react'
+import { useUser } from '@/hooks/useUser'
 import Image from 'next/image'
+
+type PostType = 'text' | 'image' | 'video' | 'article';
+
+// Utility function for class names
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ')
+}
 
 interface CreatePostProps {
   onPostCreated: () => void;
   createPost: (content: string, type: PostType, mediaUrl?: string) => Promise<void>;
 }
-
 export default function CreatePost({ onPostCreated, createPost }: CreatePostProps) {
-  const [content, setContent] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null)
-  const [postType, setPostType] = useState<PostType>("TEXT")
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const { data: user } = useUser()
+  const { user, isLoading } = useUser()
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [postType, setPostType] = useState<PostType>('text');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!content.trim() && !mediaUrl) return
+  const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
+    // Set post type based on file type
+    const fileType = file.type.split('/')[0];
+    setPostType(fileType as 'image' | 'video');
+    setMediaFile(file);
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setMediaPreview(previewUrl);
+  };
+
+  const removeMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    setPostType('text');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!content.trim() && !mediaFile) return;
+    
     try {
-      setIsSubmitting(true)
-      await createPost(content, postType, mediaUrl || undefined)
-      setContent('')
-      setMediaUrl(null)
-      setPostType('TEXT')
-      onPostCreated()
+      setIsSubmitting(true);
+      
+      let mediaUrl = '';
+      if (mediaFile) {
+        // Here you would typically upload the file to your storage
+        // and get back the URL. This is a placeholder.
+        mediaUrl = URL.createObjectURL(mediaFile);
+      }
+
+      await createPost(content, postType, mediaUrl);
+      
+      // Reset form
+      setContent('');
+      removeMedia();
+      onPostCreated();
     } catch (error) {
-      console.error('Error creating post:', error)
+      console.error('Error creating post:', error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
+  };
+
+  if (isLoading || !user) {
+    return null;
   }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const url = URL.createObjectURL(file)
-      setMediaUrl(url)
-      setPostType(file.type.startsWith('image/') ? 'IMAGE' : 'VIDEO')
-    }
-  }
-
-  const handleImageClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.accept = 'image/*'
-      fileInputRef.current.click()
-    }
-  }
-
-  const handleVideoClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.accept = 'video/*'
-      fileInputRef.current.click()
-    }
-  }
-
-  if (!user) return null
-
-  const userInitial = user.firstName ? user.firstName[0] : 'U'
 
   return (
     <Card className="p-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex items-start space-x-4">
-          <Avatar>
-            <AvatarImage src={user.avatar || undefined} alt={`${user.firstName} ${user.lastName}`} />
-            <AvatarFallback>{userInitial}</AvatarFallback>
-          </Avatar>
-          <textarea
+      <div className="flex space-x-4">
+        <Avatar>
+          <AvatarImage src={user.avatar_url || undefined} />
+          <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 space-y-4">
+          <Textarea
+            placeholder="What's on your mind?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="What's on your mind?"
-            className="flex-1 resize-none border rounded-lg p-2 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-h-[100px] resize-none"
           />
-        </div>
-
-        {mediaUrl && (
-          <div className="relative">
-            {postType === 'IMAGE' ? (
-              <div className="relative aspect-square">
-                <Image
-                  src={mediaUrl}
-                  alt="Upload preview"
-                  fill
-                  className="object-cover rounded-lg"
+          
+          {mediaPreview && (
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                onClick={removeMedia}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              {postType === 'video' ? (
+                <video
+                  src={mediaPreview}
+                  controls
+                  className="w-full rounded-lg max-h-[300px] object-contain bg-black"
                 />
-              </div>
-            ) : (
-              <video src={mediaUrl} className="max-h-60 rounded-lg" controls />
-            )}
+              ) : (
+                <Image
+                  src={mediaPreview}
+                  alt="Preview"
+                  width={800}
+                  height={300}
+                  className="w-full rounded-lg max-h-[300px] object-contain"
+                />
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex space-x-2">
+              <input
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleMediaSelect}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <ImageIcon className="h-4 w-4 mr-2" />
+                Photo
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <Video className="h-4 w-4 mr-2" />
+                Video
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPostType('article')}
+                className={cn(
+                  "text-gray-500 hover:text-gray-700",
+                  postType === 'article' && "bg-gray-100"
+                )}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Article
+              </Button>
+            </div>
             <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="absolute top-2 right-2"
-              onClick={() => {
-                setMediaUrl(null)
-                setPostType('TEXT')
-              }}
+              onClick={handleSubmit}
+              disabled={isSubmitting || (!content.trim() && !mediaFile)}
             >
-              Remove
+              Post
             </Button>
           </div>
-        )}
-
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleFileSelect}
-          aria-label="Upload media"
-          title="Upload photo or video"
-        />
-
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleImageClick}
-            >
-              <ImageIcon className="mr-2 h-4 w-4" />
-              Photo
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleVideoClick}
-            >
-              <VideoIcon className="mr-2 h-4 w-4" />
-              Video
-            </Button>
-          </div>
-          <Button
-            type="submit"
-            disabled={isSubmitting || (!content.trim() && !mediaUrl)}
-          >
-            Post
-          </Button>
         </div>
-      </form>
+      </div>
     </Card>
-  )
+  );
 }
 

@@ -2,14 +2,14 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Button } from '../ui/button'
-import { Textarea } from '../ui/textarea'
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
-import { useUser } from '@/lib/hooks/useUser'
+import { Button } from '../../../ui/shared/button'
+import { Textarea } from '../../../ui/shared/textarea'
+import { Avatar, AvatarFallback, AvatarImage } from '../../../ui/shared/avatar'
+import { useUser } from '@/hooks/useUser'
 import { ImageIcon, SmileIcon, AtSign, Link2, Bold, Italic, Send } from 'lucide-react'
-import { useToast } from '../ui/use-toast'
+import { useToast } from '@/hooks/use-toast'
 import EmojiPicker from './EmojiPicker'
-import { cn } from '@/lib/utils'
+import { cn } from '@/backend/lib/utils/utils'
 
 interface CommentComposerProps {
   postId: string
@@ -142,8 +142,8 @@ export default function CommentComposer({
     <div className="bg-white rounded-lg p-4">
       <div className="flex gap-3">
         <Avatar>
-          <AvatarImage src={user.avatar || ''} alt={user.name} />
-          <AvatarFallback>{user.name[0]}</AvatarFallback>
+          <AvatarImage src={user.avatar_url || ''} alt={user.username || user.email} />
+          <AvatarFallback>{user.username?.[0] || user.email?.[0]}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-3">
           <Textarea

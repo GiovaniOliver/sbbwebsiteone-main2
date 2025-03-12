@@ -5,9 +5,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu'
-import { useRsvp } from '@/lib/hooks/use-rsvp'
+import { useRsvp } from '@/app/hooks/useRsvp'
 import { Check, ChevronDown, Clock, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/backend/lib/utils/utils'
 import { toast } from '@/app/components/ui/use-toast'
 
 interface RSVPButtonProps {

@@ -1,16 +1,16 @@
-import AboutUsSection from './components/guestpagecomponents/homecomponents/AboutUsSection';
-import BlackOwnedBusinessDirectorySection from './components/guestpagecomponents/homecomponents/BusinessDirectorySection';
-import CommunityEngagementSection from './components/guestpagecomponents/homecomponents/CommunityEngagementSection';
-import CommunityGovernanceSection from '@/app/components/guestpagecomponents/homecomponents/CommunityGovernanceSection';
-import EducationalResourcesSection from '@/app/components/guestpagecomponents/homecomponents/EducationalResourcesSection';
-import Footer from '@/app/components/guestpagecomponents/homecomponents/FooterSection';
+import AboutUsSection from './components/guestpagecomponents/AboutUsSection';
+import BlackOwnedBusinessDirectorySection from './components/guestpagecomponents/BusinessDirectorySection';
+import CommunityEngagementSection from './components/guestpagecomponents/CommunityEngagementSection';
+import CommunityGovernanceSection from '@/app/components/guestpagecomponents/CommunityGovernanceSection';
+import EducationalResourcesSection from '@/app/components/guestpagecomponents/EducationalResourcesSection';
+import Footer from '@/app/components/guestpagecomponents/FooterSection';
 import Head from 'next/head';
-import HeroSection from '@/app/components/guestpagecomponents/homecomponents/HeroSection';
-import JoinOurCommunitySection from '@/app/components/guestpagecomponents/homecomponents/JoinOurCommunitySection';
-import { Navbar } from './components/guestpagecomponents/homecomponents/NavbarGuest';
-import OnlineMarketplaceSection from '@/app/components/guestpagecomponents/homecomponents/OnlineMarketplaceSection';
+import HeroSection from '@/app/components/guestpagecomponents/HeroSection';
+import JoinOurCommunitySection from '@/app/components/guestpagecomponents/JoinOurCommunitySection';
+import { Navbar } from './components/guestpagecomponents/NavbarGuest';
+import OnlineMarketplaceSection from '@/app/components/guestpagecomponents/OnlineMarketplaceSection';
 import React from 'react';
-import SocialNetworkFeaturesSection from '@/app/components/guestpagecomponents/homecomponents/SocialNetworkFeaturesSection';
+import SocialNetworkFeaturesSection from '@/app/components/guestpagecomponents/SocialNetworkFeaturesSection';
 
 export default function GuestHome() {
   return (

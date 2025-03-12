@@ -2,23 +2,27 @@
 const nextConfig = {
   images: {
     domains: [
-      'images.unsplash.com',
-      'img.clerk.com',
-      'maximum-gelding-62.clerk.accounts.dev',
+      'avatars.githubusercontent.com',
+      'lh3.googleusercontent.com',
+      'platform-lookaside.fbsbx.com',
+      'xsgames.co',
+      'supabase.co',
+      'supabase.com',
+      'rnfvzaelmwbbvfbsppir.supabase.co'
     ],
   },
-  // Ensure public directory is accessible
-  webpack: (config) => {
-    config.resolve.fallback = { fs: false };
+  experimental: {
+    serverActions: true,
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        punycode: false,
+      };
+    }
     return config;
   },
-  experimental: {
-    serverActions: {
-      allowedOrigins: ['localhost:3000'],
-      bodySizeLimit: '2mb'
-    },
-    typedRoutes: true,
-  },
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig

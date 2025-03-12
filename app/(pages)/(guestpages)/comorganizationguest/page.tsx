@@ -1,4 +1,4 @@
-import { Navbar } from '@/app/components/guestpagecomponents/homecomponents/NavbarGuest';
+import { Navbar } from '@/app/components/guestpagecomponents/NavbarGuest';
 import React from 'react';
 
 const CommunityOrganization: React.FC = () => {

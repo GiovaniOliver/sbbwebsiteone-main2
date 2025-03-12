@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Bell } from 'lucide-react'
 import { Button } from '@/app/components/ui/button'
+import { Badge } from '@/app/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,21 +11,21 @@ import {
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu'
 import { ScrollArea } from '@/app/components/ui/scroll-area'
-import { useNotifications, Notification } from '@/lib/hooks/useNotifications'
-import { formatDistanceToNow } from 'date-fns'
+import { useNotifications, Notification } from '@/hooks/useNotifications'
+
+
 import Link from 'next/link'
-import { Badge } from '@/app/components/ui/badge'
-import { useUser } from '@/lib/hooks/useUser'
-import type { Route } from 'next'
+import { formatDistanceToNow } from 'date-fns'
+import { Route } from 'next'
 
 export function NotificationDropdown() {
-  const { notifications, unreadCount, isLoading, markAsRead } = useNotifications()
+  const { notifications = [], unreadCount = 0, isLoading, markAsRead } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
 
   const handleMarkAsRead = () => {
-    const unreadIds = notifications
-      .filter((n: Notification) => !n.read)
-      .map((n: Notification) => n.id)
+    const unreadIds = Array.isArray(notifications) 
+      ? notifications.filter((n: Notification) => !n.read).map((n: Notification) => n.id)
+      : []
     if (unreadIds.length > 0) {
       unreadIds.forEach((id: string) => markAsRead(id))
     }
@@ -80,7 +81,7 @@ export function NotificationDropdown() {
             <div className="p-4 text-center text-sm text-gray-500">
               Loading notifications...
             </div>
-          ) : notifications.length === 0 ? (
+          ) : !Array.isArray(notifications) || notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-gray-500">
               No notifications yet
             </div>

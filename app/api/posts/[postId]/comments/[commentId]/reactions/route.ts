@@ -1,115 +1,133 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/prisma'
-import { CommentReaction } from '@prisma/client'
-
-type RouteContext = {
-  params: { postId: string; commentId: string }
-}
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 export async function POST(
-  request: NextRequest,
-  context: RouteContext
+  request: Request,
+  { params }: { params: { postId: string; commentId: string } }
 ) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const { type } = await request.json()
+    const { type } = await request.json();
 
     // Check if reaction already exists
-    const existingReaction = await prisma.commentReaction.findFirst({
-      where: {
-        commentId: context.params.commentId,
-        userId: user.id,
-        type,
-      },
-    })
+    const { data: existingReaction, error: fetchError } = await supabase
+      .from('comment_reactions')
+      .select()
+      .eq('user_id', session.user.id)
+      .eq('comment_id', params.commentId)
+      .eq('type', type)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
 
     if (existingReaction) {
-      // Remove the reaction if it exists
-      await prisma.commentReaction.delete({
-        where: { id: existingReaction.id },
-      })
+      // Remove existing reaction
+      const { error: deleteError } = await supabase
+        .from('comment_reactions')
+        .delete()
+        .eq('id', existingReaction.id);
+
+      if (deleteError) throw deleteError;
     } else {
       // Create new reaction
-      await prisma.commentReaction.create({
-        data: {
+      const { error: insertError } = await supabase
+        .from('comment_reactions')
+        .insert({
+          user_id: session.user.id,
+          comment_id: params.commentId,
           type,
-          commentId: context.params.commentId,
-          userId: user.id,
-        },
-      })
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (insertError) throw insertError;
     }
 
-    // Get updated reactions count
-    const reactions = await prisma.commentReaction.groupBy({
-      by: ['type'],
-      where: {
-        commentId: context.params.commentId,
-      },
-      _count: true,
-    })
+    // Get updated reaction counts
+    const { data: reactions, error: countError } = await supabase
+      .from('comment_reactions')
+      .select('type')
+      .eq('comment_id', params.commentId);
 
-    return NextResponse.json({ success: true, reactions })
+    if (countError) throw countError;
+
+    // Transform reactions into counts by type
+    const reactionCounts = reactions.reduce((acc: Record<string, number>, r) => {
+      acc[r.type] = (acc[r.type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const formattedReactions = Object.entries(reactionCounts).map(([type, count]) => ({
+      type,
+      count
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data: formattedReactions
+    });
   } catch (error) {
-    console.error('Error in reaction endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error updating reaction:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
 export async function GET(
-  request: NextRequest,
-  context: RouteContext
+  request: Request,
+  { params }: { params: { postId: string; commentId: string } }
 ) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
+    // Get all reactions for the comment
+    const { data: reactions, error: reactionsError } = await supabase
+      .from('comment_reactions')
+      .select('type')
+      .eq('comment_id', params.commentId);
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    if (reactionsError) throw reactionsError;
 
-    const reactions = await prisma.commentReaction.groupBy({
-      by: ['type'],
-      where: {
-        commentId: context.params.commentId,
-      },
-      _count: true,
-    })
+    // Get user's reactions
+    const { data: userReactions, error: userReactionsError } = await supabase
+      .from('comment_reactions')
+      .select('type')
+      .eq('comment_id', params.commentId)
+      .eq('user_id', session.user.id);
 
-    const userReactions = await prisma.commentReaction.findMany({
-      where: {
-        commentId: context.params.commentId,
-        userId: user.id,
-      },
-      select: {
-        type: true,
-      },
-    })
+    if (userReactionsError) throw userReactionsError;
+
+    // Transform reactions into counts by type
+    const reactionCounts = reactions.reduce((acc: Record<string, number>, r) => {
+      acc[r.type] = (acc[r.type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const formattedReactions = Object.entries(reactionCounts).map(([type, count]) => ({
+      type,
+      count
+    }));
 
     return NextResponse.json({
-      reactions,
-      userReactions: userReactions.map((r: { type: string }) => r.type),
-    })
+      success: true,
+      data: {
+        reactions: formattedReactions,
+        userReactions
+      }
+    });
   } catch (error) {
-    console.error('Error in get reactions endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error fetching reactions:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 } 

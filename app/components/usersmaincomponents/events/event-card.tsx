@@ -1,24 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/usersmaincomponents/homefeed/ui/avatar'
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
 import { MapPin, Users, Video } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '@/backend/lib/utils/utils'
 import Link from 'next/link'
+import { Event } from '@/backend/lib/types/event'
 
 interface EventCardProps {
-  event: {
-    id: string
-    title: string
-    description: string
-    date: Date
-    location: string | null
-    isVirtual: boolean
-    organizer: {
-      username: string
-      avatar: string | null
-    }
-    _count?: {
-      rsvps: number
-    }
+  event: Pick<Event, 'id' | 'title' | 'description' | 'startDate' | 'location' | 'isVirtual' | 'organizer'> & {
+    notificationCount?: number
   }
 }
 
@@ -32,7 +21,7 @@ export function EventCard({ event }: EventCardProps) {
             {event.isVirtual && <Video className="h-4 w-4 text-blue-500" />}
           </div>
           <p className="text-sm text-muted-foreground">
-            {formatDate(event.date)}
+            {formatDate(event.startDate)}
           </p>
         </CardHeader>
         <CardContent>
@@ -53,16 +42,16 @@ export function EventCard({ event }: EventCardProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={event.organizer.avatar || undefined} />
+                  <AvatarImage src={event.organizer?.imageUrl || undefined} />
                   <AvatarFallback>
-                    {event.organizer.username?.[0]?.toUpperCase()}
+                    {event.organizer?.username?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm">{event.organizer.username}</span>
+                <span className="text-sm">{event.organizer?.username}</span>
               </div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
-                <span>{event._count?.rsvps || 0}</span>
+                <span>{event.notificationCount || 0}</span>
               </div>
             </div>
           </div>

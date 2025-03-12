@@ -1,53 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { ApiResponse } from '@/lib/types';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  
   try {
-    const { searchParams } = new URL(req.url);
-    const query = searchParams.get('query') || '';
-    const category = searchParams.get('category');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const online = searchParams.get('online') === 'true';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
-    const events = await prisma.event.findMany({
-      where: {
-        AND: [
-          query ? {
-            OR: [
-              { title: { contains: query.toLowerCase() } },
-              { description: { contains: query.toLowerCase() } },
-            ],
-          } : {},
-          ...(category ? [{ category }] : []),
-          ...(startDate ? [{ startDate: { gte: new Date(startDate) } }] : []),
-          ...(endDate ? [{ endDate: { lte: new Date(endDate) } }] : []),
-          ...(online ? [{ isOnline: true }] : []),
-        ].filter(condition => Object.keys(condition).length > 0),
-      },
-      include: {
-        organizer: true,
-        _count: {
-          select: {
-            attendees: true,
-          },
-        },
-      },
-      orderBy: {
-        startDate: 'asc',
-      },
-    });
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q');
 
-    return NextResponse.json<ApiResponse<typeof events>>({
+    if (!query) {
+      return new Response('Search query is required', { status: 400 });
+    }
+
+    const { data: events, error } = await supabase
+      .from('events')
+      .select(`
+        *,
+        organizer:users(
+          id,
+          username,
+          avatar_url
+        ),
+        attendees:event_attendees(
+          user:users(
+            id,
+            username,
+            avatar_url
+          )
+        )
+      `)
+      .eq('organizer_id', 'organizer.id')
+      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+      .order('start_date', { ascending: true });
+
+    if (error) throw error;
+
+    return NextResponse.json({
       success: true,
       data: events
     });
   } catch (error) {
-    console.error("[EVENTS_SEARCH]", error);
-    return NextResponse.json<ApiResponse<null>>({
-      success: false,
-      error: 'Failed to search events'
-    }, { status: 500 });
+    console.error('Error searching events:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 } 

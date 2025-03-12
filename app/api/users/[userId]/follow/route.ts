@@ -1,178 +1,64 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/prisma'
-import { ApiResponse } from '@/lib/types'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
-export async function POST(
-  req: Request,
-  { params }: { params: { userId: string } }
-) {
+export async function POST(request: Request, { params }: { params: { userId: string } }) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Unauthorized'
-      }, { status: 401 })
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { clerkId }
-    })
+    const { data: existingFollow, error: checkError } = await supabase
+      .from('follows')
+      .select()
+      .eq('follower_id', session.user.id)
+      .eq('following_id', params.userId)
+      .single();
 
-    if (!currentUser) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
+    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+    if (existingFollow) {
+      return new Response('Already following this user', { status: 400 });
     }
 
-    const targetUser = await prisma.user.findUnique({
-      where: { id: params.userId }
-    })
+    const { error: insertError } = await supabase
+      .from('follows')
+      .insert({
+        follower_id: session.user.id,
+        following_id: params.userId
+      });
 
-    if (!targetUser) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Target user not found'
-      }, { status: 404 })
-    }
+    if (insertError) throw insertError;
 
-    // Prevent self-following
-    if (currentUser.id === targetUser.id) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Cannot follow yourself'
-      }, { status: 400 })
-    }
-
-    // Create follow relationship
-    await prisma.follows.create({
-      data: {
-        followerId: currentUser.id,
-        followingId: targetUser.id
-      }
-    })
-
-    return NextResponse.json<ApiResponse<null>>({
-      success: true
-    }, { status: 200 })
+    return new Response(null, { status: 201 });
   } catch (error) {
-    console.error('Follow error:', error)
-    return NextResponse.json<ApiResponse<null>>({
-      success: false,
-      error: 'Failed to follow user'
-    }, { status: 500 })
+    console.error('Error following user:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { userId: string } }
-) {
+export async function DELETE(request: Request, { params }: { params: { userId: string } }) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Unauthorized'
-      }, { status: 401 })
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { clerkId }
-    })
+    const { error } = await supabase
+      .from('follows')
+      .delete()
+      .eq('follower_id', session.user.id)
+      .eq('following_id', params.userId);
 
-    if (!currentUser) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
-    }
+    if (error) throw error;
 
-    // Delete follow relationship
-    await prisma.follows.delete({
-      where: {
-        followerId_followingId: {
-          followerId: currentUser.id,
-          followingId: params.userId
-        }
-      }
-    })
-
-    return NextResponse.json<ApiResponse<null>>({
-      success: true
-    }, { status: 200 })
+    return new Response(null, { status: 204 });
   } catch (error) {
-    console.error('Unfollow error:', error)
-    return NextResponse.json<ApiResponse<null>>({
-      success: false,
-      error: 'Failed to unfollow user'
-    }, { status: 500 })
-  }
-}
-
-// Get followers/following lists
-export async function GET(
-  request: Request,
-  { params }: { params: { userId: string } }
-) {
-  try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') // 'followers' or 'following'
-
-    if (!type || !['followers', 'following'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Invalid type parameter' },
-        { status: 400 }
-      )
-    }
-
-    const follows = await prisma.follow.findMany({
-      where: type === 'followers' 
-        ? { followingId: params.userId }
-        : { followerId: params.userId },
-      include: {
-        follower: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            avatar: true,
-            isVerified: true,
-          }
-        },
-        following: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            avatar: true,
-            isVerified: true,
-          }
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
-
-    return NextResponse.json(follows)
-  } catch (error) {
-    console.error('Error in follows endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error unfollowing user:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 } 

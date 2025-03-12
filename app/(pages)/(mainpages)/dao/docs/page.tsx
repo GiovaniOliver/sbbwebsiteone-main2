@@ -1,8 +1,8 @@
 'use client'
 
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
 import { Search, Book, FileText, Bookmark, ArrowRight, Star, Clock, Users } from 'lucide-react'
 
 // Mock data for documentation categories

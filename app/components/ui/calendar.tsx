@@ -3,7 +3,7 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
-import { cn } from "@/lib/utils"
+import { cn } from "@/backend/lib/utils/utils"
 import { buttonVariants } from "@/app/components/ui/button"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
@@ -53,7 +53,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-
+        NavPrev: ({ ...props }: { className?: string }) => <ChevronLeft className="h-4 w-4" />,
+        NavNext: ({ ...props }: { className?: string }) => <ChevronRight className="h-4 w-4" />,
       }}
       {...props}
     />

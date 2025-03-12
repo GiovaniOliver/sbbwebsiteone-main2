@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '../ui/button'
+import { Button } from '../../../ui/shared/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import CommentItem from './CommentItem'
 import CommentComposer from './CommentComposer'

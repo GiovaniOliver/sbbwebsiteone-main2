@@ -3,13 +3,13 @@
 
 import { useState } from 'react'
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Input } from '@/app/components/usersmaincomponents/homefeed/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Input } from '@/app/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
 import { Search, BookOpen, Trophy, Star, Clock } from 'lucide-react'
-import { useCourses } from '@/lib/hooks/use-courses'
-import { Badge } from '@/app/components/usersmaincomponents/homefeed/ui/badge'
+import { useCourses } from '@/hooks/use-courses'
+import { Badge } from '@/app/components/ui/badge'
 
 const categories = [
   'All',

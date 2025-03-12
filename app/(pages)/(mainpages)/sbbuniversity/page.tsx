@@ -2,14 +2,15 @@
 'use client'
 
 import { useState } from 'react'
-import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Input } from '@/app/components/usersmaincomponents/homefeed/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
-import { Badge } from '@/app/components/usersmaincomponents/homefeed/ui/badge'
-import { Search, BookOpen, Trophy, Star, Clock } from 'lucide-react'
-import { useCourses } from '@/lib/hooks/use-courses'
+import Layout from '@/app/components/usersmaincomponents/homefeed/layout' 
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Input } from '@/app/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
+import { Badge } from '@/app/components/ui/badge'
+import { Search, BookOpen, Trophy, Star, Clock, FileText } from 'lucide-react'
+import { useCourses } from '@/hooks/use-courses'
+
 
 const categories = [
   'All',
@@ -27,146 +28,172 @@ const levels = [
   'Advanced'
 ]
 
+// Mock data for files
+const files = [
+  {
+    id: '1',
+    name: 'Business Plan Template',
+    type: 'PDF',
+    size: '2.5 MB',
+    category: 'Business',
+    downloads: 234,
+    lastUpdated: '2024-01-15'
+  },
+  {
+    id: '2',
+    name: 'Marketing Strategy Guide',
+    type: 'DOCX',
+    size: '1.8 MB',
+    category: 'Marketing',
+    downloads: 156,
+    lastUpdated: '2024-01-14'
+  },
+  {
+    id: '3',
+    name: 'Financial Model Spreadsheet',
+    type: 'XLSX',
+    size: '3.2 MB',
+    category: 'Business',
+    downloads: 189,
+    lastUpdated: '2024-01-13'
+  }
+]
+
 export default function SBBUniversityPage() {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [selectedLevel, setSelectedLevel] = useState('All Levels')
   const [searchQuery, setSearchQuery] = useState('')
-  
-  const { data: courses, isLoading } = useCourses({
-    category: selectedCategory === 'All' ? undefined : selectedCategory,
-    level: selectedLevel === 'All Levels' ? undefined : selectedLevel.toLowerCase(),
-    search: searchQuery
-  })
+  const { data: courses, isLoading } = useCourses()
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">SBB University</h1>
-              <p className="mt-2 text-gray-600">Expand your knowledge with our expert-led courses</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  type="text"
-                  placeholder="Search courses..."
-                  className="pl-10 w-64"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <Tabs defaultValue="courses" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="courses">All Courses</TabsTrigger>
-              <TabsTrigger value="my-courses">My Courses</TabsTrigger>
-              <TabsTrigger value="certificates">Certificates</TabsTrigger>
-            </TabsList>
-
-            <div className="flex space-x-4 mb-6">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <select
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
-                <select
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={selectedLevel}
-                  onChange={(e) => setSelectedLevel(e.target.value)}
-                >
-                  {levels.map((level) => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <TabsContent value="courses" className="space-y-6">
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, i) => (
-                    <Card key={i} className="animate-pulse">
-                      <div className="h-48 bg-gray-200 rounded-t-lg" />
-                      <div className="p-4 space-y-3">
-                        <div className="h-6 bg-gray-200 rounded w-3/4" />
-                        <div className="h-4 bg-gray-200 rounded w-1/2" />
-                        <div className="h-4 bg-gray-200 rounded w-1/4" />
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {courses?.map((course) => (
-                    <Card key={course.id} className="overflow-hidden">
-                      {course.thumbnail && (
-                        <img
-                          src={course.thumbnail}
-                          alt={course.title}
-                          className="w-full h-48 object-cover"
-                        />
-                      )}
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="secondary">{course.category}</Badge>
-                          <Badge variant="outline">{course.level}</Badge>
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2">{course.title}</h3>
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                          {course.description}
-                        </p>
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-1" />
-                            {Math.round(course.duration / 60)} hours
-                          </div>
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 mr-1 text-yellow-400" />
-                            4.5 (128)
-                          </div>
-                        </div>
-                        <Button className="w-full mt-4">
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          Start Learning
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="my-courses">
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold">My Enrolled Courses</h2>
-                {/* Add enrolled courses content */}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="certificates">
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold">My Certificates</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Add certificates content */}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">SBB University</h1>
+          <Button>Create Course</Button>
         </div>
+
+        <div className="flex items-center space-x-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search courses and resources..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <Tabs defaultValue="courses">
+          <TabsList>
+            <TabsTrigger value="courses">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Courses
+            </TabsTrigger>
+            <TabsTrigger value="files">
+              <FileText className="mr-2 h-4 w-4" />
+              Files
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="courses" className="space-y-4">
+            <div className="flex space-x-4 overflow-x-auto py-2">
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex space-x-4 overflow-x-auto py-2">
+              {levels.map((level) => (
+                <Button
+                  key={level}
+                  variant={selectedLevel === level ? "default" : "outline"}
+                  onClick={() => setSelectedLevel(level)}
+                >
+                  {level}
+                </Button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {isLoading ? (
+                Array(6).fill(0).map((_, i) => (
+                  <Card key={i} className="p-4 space-y-4">
+                    <div className="h-40 bg-gray-200 rounded-lg animate-pulse" />
+                    <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+                  </Card>
+                ))
+              ) : (
+                courses?.map((course) => (
+                  <Card key={course.id} className="p-4 space-y-4">
+                    <div className="relative h-40 bg-gray-100 rounded-lg">
+                      {/* Course thumbnail would go here */}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{course.title}</h3>
+                      <p className="text-sm text-gray-500">{course.description}</p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary">
+                        <Trophy className="mr-1 h-3 w-3" />
+                        {course.level}
+                      </Badge>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Clock className="mr-1 h-3 w-3" />
+                        {course.duration}
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="files" className="space-y-4">
+            <div className="flex space-x-4 overflow-x-auto py-2">
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {files.map((file) => (
+                <Card key={file.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <FileText className="h-8 w-8 text-blue-500" />
+                      <div>
+                        <h3 className="font-semibold">{file.name}</h3>
+                        <div className="flex items-center space-x-2 text-sm text-gray-500">
+                          <span>{file.type}</span>
+                          <span>•</span>
+                          <span>{file.size}</span>
+                          <span>•</span>
+                          <span>{file.downloads} downloads</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button>Download</Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   )

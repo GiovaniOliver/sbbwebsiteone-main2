@@ -1,43 +1,31 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/prisma'
-import { ApiResponse } from '@/lib/types'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { ensureUserExists } from '@/backend/services/auth/auth.service'
+import { ApiResponse } from '@/backend/lib/types/api'
 
+// POST /api/events/[eventId]/attendance
 export async function POST(
   req: Request,
   { params }: { params: { eventId: string } }
 ) {
+  const supabase = createRouteHandlerClient({ cookies })
+  
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
+    const user = await ensureUserExists()
+    if (!user) {
       return NextResponse.json<ApiResponse<null>>({
         success: false,
         error: 'Unauthorized'
       }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId }
-    })
-
-    if (!user) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
-    }
-
-    const event = await prisma.event.findUnique({
-      where: { id: params.eventId },
-      include: {
-        rsvps: {
-          where: {
-            userId: user.id,
-            status: 'GOING'
-          }
-        }
-      }
-    })
+    // Check if event exists
+    const { data: event } = await supabase
+      .from('events')
+      .select()
+      .eq('id', params.eventId)
+      .single()
 
     if (!event) {
       return NextResponse.json<ApiResponse<null>>({
@@ -46,104 +34,73 @@ export async function POST(
       }, { status: 404 })
     }
 
-    // Check if user RSVP'd as GOING
-    if (event.rsvps.length === 0) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Must RSVP as going to check in'
-      }, { status: 400 })
-    }
+    const { status } = await req.json()
 
-    // Create attendance record
-    const attendance = await prisma.attendance.create({
-      data: {
-        eventId: event.id,
-        userId: user.id
-      }
-    })
+    // Upsert attendance record
+    const { error } = await supabase
+      .from('event_attendance')
+      .upsert({
+        user_id: user.id,
+        event_id: params.eventId,
+        status,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,event_id'
+      })
 
-    return NextResponse.json<ApiResponse<typeof attendance>>({
-      success: true,
-      data: attendance
+    if (error) throw error
+
+    return NextResponse.json<ApiResponse<null>>({
+      success: true
     })
   } catch (error) {
-    console.error('Attendance error:', error)
+    console.error("[EVENT_ATTENDANCE_POST]", error)
     return NextResponse.json<ApiResponse<null>>({
       success: false,
-      error: 'Failed to record attendance'
+      error: 'Failed to update attendance'
     }, { status: 500 })
   }
 }
 
+// GET /api/events/[eventId]/attendance
 export async function GET(
   req: Request,
   { params }: { params: { eventId: string } }
 ) {
+  const supabase = createRouteHandlerClient({ cookies })
+  
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
+    const user = await ensureUserExists()
+    if (!user) {
       return NextResponse.json<ApiResponse<null>>({
         success: false,
         error: 'Unauthorized'
       }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId }
-    })
+    // Get attendees with user details
+    const { data: attendees, error } = await supabase
+      .from('event_attendance')
+      .select(`
+        *,
+        user:users (
+          username,
+          first_name,
+          last_name,
+          image_url
+        )
+      `)
+      .eq('event_id', params.eventId)
+      .order('created_at', { ascending: false })
 
-    if (!user) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
-    }
-
-    // Check if user is event organizer
-    const event = await prisma.event.findUnique({
-      where: { id: params.eventId }
-    })
-
-    if (!event) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Event not found'
-      }, { status: 404 })
-    }
-
-    if (event.organizerId !== user.id) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Only event organizers can view attendance'
-      }, { status: 403 })
-    }
-
-    const attendees = await prisma.attendance.findMany({
-      where: {
-        eventId: params.eventId
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatar: true
-          }
-        }
-      },
-      orderBy: {
-        checkedInAt: 'desc'
-      }
-    })
+    if (error) throw error
 
     return NextResponse.json<ApiResponse<typeof attendees>>({
       success: true,
       data: attendees
     })
   } catch (error) {
-    console.error('Get attendees error:', error)
+    console.error("[EVENT_ATTENDANCE_GET]", error)
     return NextResponse.json<ApiResponse<null>>({
       success: false,
       error: 'Failed to fetch attendees'

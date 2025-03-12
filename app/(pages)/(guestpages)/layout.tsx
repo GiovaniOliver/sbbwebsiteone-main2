@@ -1,27 +1,17 @@
-'use client'
+import { redirect } from 'next/navigation';
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
-import { useAuth } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
-
-export default function PublicLayout({
+export default async function GuestLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isLoaded, userId } = useAuth();
+  const supabase = createServerComponentClient({ cookies });
+  const { data: { session } } = await supabase.auth.getSession();
 
-  // Handle loading state
-  if (!isLoaded) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // If user is authenticated, redirect to dashboard
-  if (userId) {
-    redirect("/homefeed");
+  if (session) {
+    redirect('/homefeed');
   }
 
   return <>{children}</>;

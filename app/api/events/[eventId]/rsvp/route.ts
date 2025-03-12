@@ -1,170 +1,112 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/prisma'
-import { ApiResponse } from '@/lib/types'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { ApiResponse } from '@/backend/lib/types/api';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
+export async function POST(request: Request, { params }: { params: { eventId: string } }) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const { userId: clerkId } = getAuth(req)
-    if (!clerkId) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Unauthorized'
-      }, { status: 401 })
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
+
+    const { data: existingRsvp, error: checkError } = await supabase
+      .from('event_attendees')
+      .select()
+      .eq('event_id', params.eventId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!checkError) {
+      throw new Error('Already RSVPed to this event');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId }
-    })
+    const { error: insertError } = await supabase
+      .from('event_attendees')
+      .insert({
+        event_id: params.eventId,
+        user_id: user.id,
+        status: 'going'
+      });
 
-    if (!user) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
-    }
+    if (insertError) throw insertError;
 
-    const event = await prisma.event.findUnique({
-      where: { id: params.eventId }
-    })
+    const response: ApiResponse<null> = {
+      success: true
+    };
 
-    if (!event) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Event not found'
-      }, { status: 404 })
-    }
-
-    // Check if user already RSVP'd
-    const existingRsvp = await prisma.rSVP.findUnique({
-      where: {
-        eventId_userId: {
-          eventId: event.id,
-          userId: user.id
-        }
-      }
-    })
-
-    let rsvp
-    if (existingRsvp) {
-      // Update existing RSVP
-      rsvp = await prisma.rSVP.update({
-        where: {
-          eventId_userId: {
-            eventId: event.id,
-            userId: user.id
-          }
-        },
-        data: {
-          status: existingRsvp.status === 'GOING' ? 'NOT_GOING' : 'GOING'
-        }
-      })
-    } else {
-      // Create new RSVP
-      rsvp = await prisma.rSVP.create({
-        data: {
-          userId: user.id,
-          eventId: event.id,
-          status: 'GOING'
-        }
-      })
-    }
-
-    return NextResponse.json<ApiResponse<typeof rsvp>>({
-      success: true,
-      data: rsvp
-    })
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('RSVP error:', error)
-    return NextResponse.json<ApiResponse<null>>({
+    console.error('Error RSVPing to event:', error);
+    const response: ApiResponse<null> = {
       success: false,
-      error: 'Failed to update RSVP'
-    }, { status: 500 })
+      error: error instanceof Error ? error.message : 'Failed to RSVP to event'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
+export async function PATCH(request: Request, { params }: { params: { eventId: string } }) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const { userId: clerkId } = getAuth(req)
-    if (!clerkId) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'Unauthorized'
-      }, { status: 401 })
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
+
+    const { status } = await request.json();
+    if (!status || !['going', 'not_going', 'maybe'].includes(status)) {
+      throw new Error('Invalid status');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId }
-    })
+    const { error } = await supabase
+      .from('event_attendees')
+      .update({ status })
+      .eq('event_id', params.eventId)
+      .eq('user_id', user.id);
 
-    if (!user) {
-      return NextResponse.json<ApiResponse<null>>({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
-    }
-      await prisma.rSVP.delete({
-        where: {
-          eventId_userId: {
-            eventId: params.eventId,
-            userId: user.id
-          }
-        }
-      })
+    if (error) throw error;
 
-    return NextResponse.json<ApiResponse<null>>({
-      success: true,
-      data: null
-    })
+    const response: ApiResponse<null> = {
+      success: true
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Cancel RSVP error:', error)
-    return NextResponse.json<ApiResponse<null>>({
+    console.error('Error updating RSVP:', error);
+    const response: ApiResponse<null> = {
       success: false,
-      error: 'Failed to cancel RSVP'
-    }, { status: 500 })
+      error: error instanceof Error ? error.message : 'Failed to update RSVP'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
+export async function DELETE(request: Request, { params }: { params: { eventId: string } }) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const rsvps = await prisma.rSVP.findMany({
-      where: {
-        eventId: params.eventId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatar: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
 
-    return NextResponse.json<ApiResponse<typeof rsvps>>({
-      success: true,
-      data: rsvps
-    })
+    const { error } = await supabase
+      .from('event_attendees')
+      .delete()
+      .eq('event_id', params.eventId)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    const response: ApiResponse<null> = {
+      success: true
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Get RSVPs error:', error)
-    return NextResponse.json<ApiResponse<null>>({
+    console.error('Error canceling RSVP:', error);
+    const response: ApiResponse<null> = {
       success: false,
-      error: 'Failed to fetch RSVPs'
-    }, { status: 500 })
+      error: error instanceof Error ? error.message : 'Failed to cancel RSVP'
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 } 

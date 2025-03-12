@@ -1,159 +1,178 @@
 'use client'
 
+import { useState } from 'react'
 import Layout from '@/app/components/usersmaincomponents/homefeed/Layout'
-import { Card } from '@/app/components/usersmaincomponents/homefeed/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/usersmaincomponents/homefeed/ui/avatar'
-import { Button } from '@/app/components/usersmaincomponents/homefeed/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/usersmaincomponents/homefeed/ui/tabs'
-import { useToast } from '@/app/components/ui/use-toast'
-
-// Test data
-const friendRequests = [
-  {
-    id: 1,
-    name: "Emma Thompson",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
-    mutualFriends: 5
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
-    mutualFriends: 3
-  }
-]
-
-const friendsList = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36",
-    mutualFriends: 12
-  },
-  {
-    id: 2,
-    name: "Sarah Wilson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    mutualFriends: 8
-  }
-]
-
-const suggestions = [
-  {
-    id: 1,
-    name: "Rachel Green",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
-    mutualFriends: 7
-  },
-  {
-    id: 2,
-    name: "James Wilson",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
-    mutualFriends: 4
-  }
-]
+import { Card } from '@/app/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
+import { Button } from '@/app/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
+import { useFriends } from '@/hooks/useFriends'
+import { Skeleton } from '@/app/components/ui/skeleton'
+import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 export default function FriendsPage() {
-  const { toast } = useToast()
+  const {
+    friends,
+    friendRequests,
+    loadingFriends,
+    loadingRequests,
+    sendRequest,
+    respondToRequest,
+    removeFriend
+  } = useFriends()
 
-  const handleAcceptRequest = (friendId: number) => {
-    toast({
-      title: "Friend request accepted"
-    })
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      await respondToRequest.mutateAsync({ requestId, status: 'ACCEPTED' })
+      toast.success('Friend request accepted')
+    } catch (error) {
+      toast.error('Failed to accept friend request')
+    }
   }
 
-  const handleAddFriend = (friendId: number) => {
-    toast({
-      title: "Friend request sent"
-    })
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await respondToRequest.mutateAsync({ requestId, status: 'REJECTED' })
+      toast.success('Friend request rejected')
+    } catch (error) {
+      toast.error('Failed to reject friend request')
+    }
+  }
+
+  const handleRemoveFriend = async (friendId: string) => {
+    try {
+      await removeFriend.mutateAsync(friendId)
+      toast.success('Friend removed')
+    } catch (error) {
+      toast.error('Failed to remove friend')
+    }
   }
 
   return (
     <Layout>
-      <div>
-        <h1 className="text-2xl font-bold mb-6">My Friends</h1>
-        
-        <Tabs defaultValue="friends" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="friends">All Friends</TabsTrigger>
-            <TabsTrigger value="requests">Friend Requests</TabsTrigger>
-            <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
-          </TabsList>
+      <div className="container py-8">
+        <div className="flex flex-col gap-8">
+          <div>
+            <h1 className="text-3xl font-bold">Friends</h1>
+            <p className="text-muted-foreground">
+              Manage your friends and friend requests
+            </p>
+          </div>
 
-          <TabsContent value="friends">
-            <div className="space-y-4">
-              {friendsList.map((friend) => (
-                <Card key={friend.id} className="p-4">
-                  <div className="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarImage src={friend.avatar} alt={friend.name} />
-                      <AvatarFallback>{friend.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{friend.name}</h3>
-                      <p className="text-sm text-gray-500">{friend.mutualFriends} mutual friends</p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Message
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+          <Tabs defaultValue="friends">
+            <TabsList>
+              <TabsTrigger value="friends">Friends</TabsTrigger>
+              <TabsTrigger value="requests">
+                Requests {friendRequests?.length ? `(${friendRequests.length})` : ''}
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="requests">
-            <div className="space-y-4">
-              {friendRequests.map((request) => (
-                <Card key={request.id} className="p-4">
-                  <div className="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarImage src={request.avatar} alt={request.name} />
-                      <AvatarFallback>{request.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{request.name}</h3>
-                      <p className="text-sm text-gray-500">{request.mutualFriends} mutual friends</p>
-                    </div>
-                    <Button 
-                      variant="default" 
-                      size="sm"
-                      onClick={() => handleAcceptRequest(request.id)}
-                    >
-                      Accept
-                    </Button>
+            <TabsContent value="friends" className="mt-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {loadingFriends ? (
+                  [...Array(6)].map((_, i) => (
+                    <Card key={i} className="p-4">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="flex-1">
+                          <Skeleton className="h-4 w-24 mb-2" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                ) : friends?.length === 0 ? (
+                  <div className="col-span-full text-center text-muted-foreground">
+                    No friends yet
                   </div>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+                ) : (
+                  friends?.map((friend) => (
+                    <Card key={friend.id} className="p-4">
+                      <div className="flex items-center gap-4">
+                        <Avatar>
+                          <AvatarImage src={friend.friend.image_url || undefined} />
+                          <AvatarFallback>
+                            {friend.friend.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="font-semibold">{friend.friend.username}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Friends since {format(new Date(friend.created_at), 'PP')}
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveFriend(friend.friend_id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
 
-          <TabsContent value="suggestions">
-            <div className="space-y-4">
-              {suggestions.map((suggestion) => (
-                <Card key={suggestion.id} className="p-4">
-                  <div className="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarImage src={suggestion.avatar} alt={suggestion.name} />
-                      <AvatarFallback>{suggestion.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{suggestion.name}</h3>
-                      <p className="text-sm text-gray-500">{suggestion.mutualFriends} mutual friends</p>
-                    </div>
-                    <Button 
-                      variant="default" 
-                      size="sm"
-                      onClick={() => handleAddFriend(suggestion.id)}
-                    >
-                      Add Friend
-                    </Button>
+            <TabsContent value="requests" className="mt-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {loadingRequests ? (
+                  [...Array(3)].map((_, i) => (
+                    <Card key={i} className="p-4">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="flex-1">
+                          <Skeleton className="h-4 w-24 mb-2" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                ) : friendRequests?.length === 0 ? (
+                  <div className="col-span-full text-center text-muted-foreground">
+                    No friend requests
                   </div>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+                ) : (
+                  friendRequests?.map((request) => (
+                    <Card key={request.id} className="p-4">
+                      <div className="flex items-center gap-4">
+                        <Avatar>
+                          <AvatarImage src={request.sender.image_url || undefined} />
+                          <AvatarFallback>
+                            {request.sender.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="font-semibold">{request.sender.username}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Sent {format(new Date(request.created_at), 'PP')}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAcceptRequest(request.id)}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectRequest(request.id)}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </Layout>
   )

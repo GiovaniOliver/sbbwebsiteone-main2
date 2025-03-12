@@ -1,6 +1,6 @@
 'use client'
 
-import { Card } from '../ui/card'
+import { Card } from '../../../ui/shared/card'
 
 const EMOJI_CATEGORIES = {
   'Smileys & People': ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘'],

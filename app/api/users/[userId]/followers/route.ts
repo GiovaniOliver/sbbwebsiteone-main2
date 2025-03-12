@@ -1,41 +1,26 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ApiResponse } from '@/lib/types'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { userId: string } }
-) {
+export async function GET(request: Request, { params }: { params: { userId: string } }) {
+  const supabase = createRouteHandlerClient({ cookies });
+  
   try {
-    const followers = await prisma.follows.findMany({
-      where: {
-        followingId: params.userId
-      },
-      include: {
-        follower: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
-    return NextResponse.json<ApiResponse<typeof followers>>({
-      success: true,
-      data: followers
-    })
+    const { data: followers, error } = await supabase
+      .from('follows')
+      .select('follower:users!follows_follower_id_fkey(*)')
+      .eq('following_id', params.userId);
+
+    if (error) throw error;
+
+    return NextResponse.json(followers.map(f => f.follower));
   } catch (error) {
-    console.error('Get followers error:', error)
-    return NextResponse.json<ApiResponse<null>>({
-      success: false,
-      error: 'Failed to fetch followers'
-    }, { status: 500 })
+    console.error('Error fetching followers:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 } 

@@ -1,17 +1,17 @@
-import BusinessDirectoryFeat from '@/app/components/guestpagecomponents/featurecomponents/BusinessDirectoryFeat';
-import CollaborativeProgramsFeat from '@/app/components/guestpagecomponents/featurecomponents/CollaborativeProgramsFeat';
-import CommunityEngagementFeat from '@/app/components/guestpagecomponents/featurecomponents/CommunityEngagementFeat';
-import CommunityGovernanceFeat from '@/app/components/guestpagecomponents/featurecomponents/CommunityGovernanceFeat';
-import DataPrivacyAndSecurityFeat from '@/app/components/guestpagecomponents/featurecomponents/DataPrivacyAndSecurityFeat';
-import EducationalResourcesFeat from '@/app/components/guestpagecomponents/featurecomponents/EducationalResourcesFeat';
-import EmergingTechFeat from '@/app/components/guestpagecomponents/featurecomponents/EmergingTechFeat';
-import FooterSection from '@/app/components/guestpagecomponents/homecomponents/FooterSection';
+import BusinessDirectoryFeat from '@/app/components/guestpagecomponents/BusinessDirectoryFeat';
+import CollaborativeProgramsFeat from '@/app/components/guestpagecomponents/CollaborativeProgramsFeat';
+import CommunityEngagementFeat from '@/app/components/guestpagecomponents/CommunityEngagementFeat';
+import CommunityGovernanceFeat from '@/app/components/guestpagecomponents/CommunityGovernanceFeat';
+import DataPrivacyAndSecurityFeat from '@/app/components/guestpagecomponents/DataPrivacyAndSecurityFeat';
+import EducationalResourcesFeat from '@/app/components/guestpagecomponents/EducationalResourcesFeat';
+import EmergingTechFeat from '@/app/components/guestpagecomponents/EmergingTechFeat';
+import FooterSection from '@/app/components/guestpagecomponents/FooterSection';
 import { Fragment } from 'react';
 import Head from 'next/head';
-import IntroductionFeat from '@/app/components/guestpagecomponents/featurecomponents/Introductionfeat';
-import { Navbar } from '@/app/components/guestpagecomponents/homecomponents/NavbarGuest';
-import OnlineMarketplaceFeat from '@/app/components/guestpagecomponents/featurecomponents/OnlineMarketplaceFeat';
-import ShortVideoCreationFeat from '@/app/components/guestpagecomponents/featurecomponents/ShortVideoCreationFeat';
+import IntroductionFeat from '@/app/components/guestpagecomponents/Introductionfeat';
+import { Navbar } from '@/app/components/guestpagecomponents/NavbarGuest';
+import OnlineMarketplaceFeat from '@/app/components/guestpagecomponents/OnlineMarketplaceFeat';
+import ShortVideoCreationFeat from '@/app/components/guestpagecomponents/ShortVideoCreationFeat';
 
 const Features = () => {
   return (

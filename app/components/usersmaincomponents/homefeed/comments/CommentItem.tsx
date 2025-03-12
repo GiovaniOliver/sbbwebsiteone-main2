@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
-import { Button } from '../ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '../../../ui/shared/avatar'
+import { Button } from '../../../ui/shared/button'
 import { MessageCircle, MoreHorizontal, ThumbsUp } from 'lucide-react'
 import {
   DropdownMenu,
@@ -10,8 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu"
-import { useUser } from '@/lib/hooks/useUser'
-import { useToast } from '../ui/use-toast'
+import { useUser } from '@/app/hooks/useUser'
+import { useToast } from '@/app/components/ui/use-toast'
 import CommentComposer from './CommentComposer'
 import Image from 'next/image'
 import { formatDistanceToNow } from 'date-fns'
@@ -48,7 +48,7 @@ export default function CommentItem({ comment, postId, onCommentUpdated, depth =
   const [isReplying, setIsReplying] = useState(false)
   const [showReplies, setShowReplies] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const { user } = useUser()
+  const { data: user } = useUser()
   const { toast } = useToast()
 
   const handleReply = () => {
@@ -120,8 +120,8 @@ export default function CommentItem({ comment, postId, onCommentUpdated, depth =
     <div className={`pl-${depth * 8}`}>
       <div className="flex gap-3">
         <Avatar>
-          <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
-          <AvatarFallback>{comment.author.name[0]}</AvatarFallback>
+          <AvatarImage src={comment.author.image_url} alt={comment.author.username} />
+          <AvatarFallback>{comment.author.username?.[0]?.toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <div className="bg-gray-50 rounded-lg p-3">

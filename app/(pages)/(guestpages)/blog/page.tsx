@@ -1,15 +1,15 @@
-import AuthorBioSection from '@/app/components/guestpagecomponents/blogcomponents/authorbioblog';
-import BodyContentSection from '@/app/components/guestpagecomponents/blogcomponents/bodycontentblog';
-import CTASection from '@/app/components/guestpagecomponents/blogcomponents/ctablog';
-import CommentsSection from '@/app/components/guestpagecomponents/blogcomponents/commentsblog';
+import AuthorBioSection from '@/app/components/guestpagecomponents/authorbioblog';
+import BodyContentSection from '@/app/components/guestpagecomponents/bodycontentblog';
+import CTASection from '@/app/components/guestpagecomponents/ctablog';
+import CommentsSection from '@/app/components/guestpagecomponents/commentsblog';
 import Footer from '@/app/components/footer';
 import Head from 'next/head';
-import HeroSection from '@/app/components/guestpagecomponents/blogcomponents/heroblog';
-import IntroductionSection from '@/app/components/guestpagecomponents/blogcomponents/introductionblog';
-import { Navbar } from '@/app/components/guestpagecomponents/homecomponents/NavbarGuest';
+import HeroSection from '@/app/components/guestpagecomponents/heroblog';
+import IntroductionSection from '@/app/components/guestpagecomponents/introductionblog';
+import { Navbar } from '@/app/components/guestpagecomponents/NavbarGuest';
 import React from 'react';
-import RelatedPostsSection from '@/app/components/guestpagecomponents/blogcomponents/relatedpostblog';
-import SubheadingsSection from '@/app/components/guestpagecomponents/blogcomponents/subheadingblog';
+import RelatedPostsSection from '@/app/components/guestpagecomponents/relatedpostblog';
+import SubheadingsSection from '@/app/components/guestpagecomponents/subheadingblog';
 
 const BlogPost: React.FC = () => {
     return (

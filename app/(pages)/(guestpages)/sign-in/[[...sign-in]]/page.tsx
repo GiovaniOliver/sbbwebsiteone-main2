@@ -1,42 +1,23 @@
-import { SignIn } from "@clerk/nextjs";
-import Image from "next/image";
+'use client';
+
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { Database } from '@/backend/lib/types/supabase';
 
 export default function SignInPage() {
+  const supabase = createClientComponentClient<Database>();
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="mb-8">
-        <Image
-          src="/logo.png"
-          alt="SBB DAO Logo"
-          width={120}
-          height={120}
-          className="mx-auto"
-        />
-      </div>
-      <div className="w-full max-w-md">
-        <SignIn
-          appearance={{
-            elements: {
-              rootBox: "mx-auto",
-              card: "bg-white/80 backdrop-blur-sm shadow-xl border border-gray-100",
-              headerTitle: "text-2xl font-bold text-gray-900",
-              headerSubtitle: "text-gray-600",
-              formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white font-medium",
-              formFieldInput: "border-gray-300 focus:border-blue-500 focus:ring-blue-500",
-              footerActionLink: "text-blue-600 hover:text-blue-700 font-medium",
-              dividerLine: "bg-gray-200",
-              dividerText: "text-gray-500 bg-white px-2",
-              socialButtonsBlockButton: "border-gray-200 hover:bg-gray-50",
-              socialButtonsBlockButtonText: "text-gray-600 font-medium",
-              formFieldLabel: "text-gray-700 font-medium",
-              identityPreviewText: "text-gray-700",
-              identityPreviewEditButton: "text-blue-600 hover:text-blue-700",
-            },
-          }}
-          afterSignInUrl="/homefeed"
-          path="/sign-in"
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-md p-8">
+        <Auth
+          supabaseClient={supabase}
+          appearance={{ theme: ThemeSupa }}
+          providers={['google', 'github']}
+          redirectTo={process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL || '/auth/callback'}
         />
       </div>
     </div>
   );
-} 
+}

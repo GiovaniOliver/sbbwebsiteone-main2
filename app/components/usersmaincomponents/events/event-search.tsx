@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useEventSearch } from '@/app/hooks/useEventSearch';
+import { useEventSearch } from '@/hooks/useEventSearch'
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Calendar } from '@/app/components/ui/calendar';
@@ -11,8 +11,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/app/components/ui/select';
-import { Checkbox } from '@/app/components/ui/checkbox';
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox'; 
 import { format } from 'date-fns';
 import { Loader2, Search } from 'lucide-react';
 
@@ -91,7 +91,7 @@ export function EventSearch() {
           <Checkbox
             id="online"
             checked={filters.online}
-            onCheckedChange={(checked) => updateFilters({ online: checked as boolean })}
+            onCheckedChange={(checked: boolean) => updateFilters({ online: checked })}
           />
           <label htmlFor="online" className="text-sm font-medium">
             Online events only
@@ -119,7 +119,7 @@ export function EventSearch() {
       </form>
 
       <div className="space-y-4">
-        {events.map((event) => (
+        {events.map((event: any) => (
           <div
             key={event.id}
             className="rounded-lg border p-4 hover:bg-gray-50 transition-colors"
@@ -131,7 +131,7 @@ export function EventSearch() {
             <p className="text-sm text-gray-600 mt-2">{event.description}</p>
             <div className="mt-2 flex items-center gap-2">
               <span className="text-sm text-gray-500">
-                {event._count.attendees} attendees
+                {event.notificationCount || 0} notifications
               </span>
               {event.isOnline && (
                 <span className="text-sm text-blue-500">Online Event</span>
