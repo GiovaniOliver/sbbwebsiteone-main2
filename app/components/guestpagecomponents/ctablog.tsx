@@ -1,3 +1,5 @@
+"use client";
+
 // app/components/CTASection.tsx
 import React from 'react';
 
@@ -7,11 +9,13 @@ type CTASectionProps = {
 
 const CTASection: React.FC<CTASectionProps> = ({ ctaText }) => {
     return (
-        <div className="px-10 py-5 bg-gray-100 text-center rounded">
-            <h2 className="text-2xl font-bold mb-2">{ctaText}</h2>
-            <button className="px-5 py-2 bg-blue-500 text-white rounded-full">
-                Subscribe
-            </button>
+        <div className="container mx-auto px-4 py-16 max-w-4xl">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-10 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-6 text-white">{ctaText}</h2>
+                <button className="px-8 py-3 bg-white text-indigo-700 font-semibold rounded-full shadow-md hover:shadow-lg transition-shadow">
+                    Join Our Community
+                </button>
+            </div>
         </div>
     );
 };

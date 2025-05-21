@@ -1,82 +1,122 @@
 'use client'
 
-import { useState } from 'react'
-import { Bell, FileText, Image, MessageCircle, ShoppingBag, Users, Video, Vote, Coins, FileCode, Users2, BookOpen, GanttChart, GraduationCap, Blocks } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { useUser } from '@/hooks/useUser'
+import { useState, useEffect } from 'react'
+import { 
+  LayoutGrid, 
+  Users, 
+  Bell,
+  Video,
+  Image,
+  ShoppingBag,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  LineChart
+} from 'lucide-react'
 import { Route } from 'next'
-import { Sidebar, SidebarBody, SidebarLink } from '@/app/components/ui/sidebar'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { useSidebar } from '@/app/components/ui/sidebar'
+import { cn } from '@/backend/lib/utils/utils'
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/molecules/display/Avatar'
 
-const menuItems = [
-  { icon: <Image className="h-5 w-5" />, label: 'Feed', href: '/homefeed' as Route },
+// Main navigation items
+const mainNavItems = [
+  { icon: <LayoutGrid className="h-5 w-5" />, label: 'Feed', href: '/homefeed' as Route },
   { icon: <Users className="h-5 w-5" />, label: 'Friends', href: '/friends' as Route },
   { icon: <Bell className="h-5 w-5" />, label: 'Events', href: '/events' as Route },
   { icon: <Video className="h-5 w-5" />, label: 'Watch Videos', href: '/videos' as Route },
   { icon: <Image className="h-5 w-5" />, label: 'Photos', href: '/photos' as Route },
   { icon: <ShoppingBag className="h-5 w-5" />, label: 'Marketplace', href: '/marketplace' as Route },
   { icon: <BookOpen className="h-5 w-5" />, label: 'SBB University', href: '/sbbuniversity' as Route },
+  { icon: <LineChart className="h-5 w-5" />, label: 'BP Dashboard', href: '/dashboard' as Route },
 ]
-
-const daoFeatures = [
-  { icon: <Vote className="h-5 w-5" />, label: 'Governance', href: '/dao/governance' as Route },
-  { icon: <Coins className="h-5 w-5" />, label: 'Treasury', href: '/dao/treasury' as Route },
-  { icon: <FileCode className="h-5 w-5" />, label: 'Proposals', href: '/dao/proposals' as Route },
-  { icon: <Users2 className="h-5 w-5" />, label: 'Members', href: '/dao/members' as Route },
-  { icon: <BookOpen className="h-5 w-5" />, label: 'Documentation', href: '/dao/docs' as Route },
-  { icon: <GanttChart className="h-5 w-5" />, label: 'Projects', href: '/dao/projects' as Route },
-]
-
-const DaoFeaturesTitle = () => {
-  const { open, animate } = useSidebar();
-  
-  return (
-    <div className="flex items-center gap-2 px-2 mb-4">
-      <Blocks className="h-4 w-4 text-neutral-400" />
-      <motion.span
-        animate={{
-          display: animate ? (open ? "inline-block" : "none") : "inline-block",
-          opacity: animate ? (open ? 1 : 0) : 1,
-        }}
-        className="text-xs font-semibold text-neutral-400 uppercase"
-      >
-        DAO Features
-      </motion.span>
-    </div>
-  );
-};
 
 export default function LeftSidebar() {
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname()
+  const { user } = useUser()
+  const [isOpen, setIsOpen] = useState(true)
+
+  // Load sidebar state from session storage
+  useEffect(() => {
+    const savedState = sessionStorage.getItem('sidebarOpen')
+    if (savedState !== null) {
+      setIsOpen(savedState === 'true')
+    }
+  }, [])
+
+  // Save sidebar state to session storage
+  const toggleSidebar = () => {
+    const newState = !isOpen
+    setIsOpen(newState)
+    sessionStorage.setItem('sidebarOpen', String(newState))
+  }
 
   return (
-    <Sidebar open={open} setOpen={setOpen}>
-      <SidebarBody className="justify-between gap-10">
-        <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-          <Link
-            href="/"
-            className="font-normal flex space-x-2 items-center text-sm text-white py-1 relative z-20 mb-8"
-          >
-            <div className="h-5 w-6 bg-white rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
-            <span className="font-medium whitespace-pre">SBB DAO</span>
-          </Link>
-
-          <div className="flex flex-col gap-2">
-            {menuItems.map((item, idx) => (
-              <SidebarLink key={idx} link={item} />
-            ))}
-          </div>
-
-          <div className="mt-8">
-            <DaoFeaturesTitle />
-            <div className="flex flex-col gap-2">
-              {daoFeatures.map((item, idx) => (
-                <SidebarLink key={idx} link={item} />
-              ))}
+    <aside className={cn(
+      "fixed top-16 left-0 h-[calc(100vh-64px)]",
+      "bg-gradient-to-b from-[#1B2130] to-[#182030] border-r border-[#2E3446]",
+      "transition-all duration-300 z-30 shadow-md",
+      // Mobile: collapsed by default (16px width)
+      // Desktop: expanded by default (64 = 256px width) if isOpen is true
+      isOpen ? "w-16 lg:w-64" : "w-16",
+      "flex flex-col"
+    )}>
+      {/* User Profile Section */}
+      {user && (
+        <div className={cn(
+          "p-4 flex items-center gap-3 border-b border-[#2E3446]/70 mb-2",
+          !isOpen && "justify-center"
+        )}>
+          <Avatar className="h-10 w-10 border border-[#3D495E]/50 shadow-sm">
+            <AvatarImage src={user.user_metadata?.avatar_url} />
+            <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-700">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          {isOpen && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {user.user_metadata?.full_name || user.email}
+              </p>
+              <p className="text-xs text-gray-400 truncate">
+                {user.email}
+              </p>
             </div>
-          </div>
+          )}
         </div>
-      </SidebarBody>
-    </Sidebar>
+      )}
+
+      {/* Navigation Links */}
+      <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-[#2E3446] scrollbar-track-transparent">
+        {mainNavItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-md my-1",
+              "text-gray-400 hover:text-white hover:bg-[#2E3446]/80 hover:shadow-sm",
+              "transition-all duration-200 whitespace-nowrap",
+              pathname === item.href && "text-white bg-gradient-to-r from-[#2E3757] to-[#2E3446] shadow-sm border border-[#3D4E66]/30",
+              !isOpen && "justify-center"
+            )}
+          >
+            {item.icon}
+            {isOpen && <span>{item.label}</span>}
+          </Link>
+        ))}
+      </nav>
+
+      {/* Toggle Button - only visible on desktop */}
+      <button
+        onClick={toggleSidebar}
+        className="hidden lg:block absolute top-4 right-0 transform translate-x-full bg-[#1B2130] p-2 rounded-r-md border border-l-0 border-[#2E3446] text-gray-400 hover:text-white shadow-md"
+      >
+        {isOpen ? (
+          <ChevronLeft className="h-5 w-5" />
+        ) : (
+          <ChevronRight className="h-5 w-5" />
+        )}
+      </button>
+    </aside>
   )
-} 
+}

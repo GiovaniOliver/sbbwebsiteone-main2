@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Card } from '../../ui/shared/card'
-import { Skeleton } from '../../ui/shared/skeleton'
+import Image from 'next/image'
+import { Card } from '@/app/components/molecules/cards/Card'
+import { Skeleton } from '@/app/components/atoms/feedback/Skeleton'
 import Link from 'next/link'
-import { Button } from '../../ui/shared/button'
+import { Button } from '@/app/components/atoms/buttons/Button'
 import { Calendar, Clock, Users } from 'lucide-react'
 
 interface LiveEventsListProps {

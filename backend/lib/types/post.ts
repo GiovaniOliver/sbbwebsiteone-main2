@@ -1,74 +1,53 @@
-import { CommentDb, toComment } from './comment';
-import { Comment } from './comment';
-import { UserDb, User, toUser } from './user';
+import { Database } from './supabase';
 
-export type PostType = 'text' | 'image' | 'video' | 'article';
-export type PostVisibility = 'public' | 'friends' | 'private';
-export type PostStatus = 'active' | 'deleted' | 'hidden';
+// Basic post type from the database
+export type Post = Database['public']['Tables']['posts']['Row'];
 
-export interface PostDb {
-  id: string;
-  user_id: string | null;
-  content: string | null;
-  media_url: string | null;
-  post_type: PostType;
-  visibility: PostVisibility;
-  status: PostStatus;
-  created_at: Date;
-  updated_at: Date;
+// Profile type for author information
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+
+// Types for comments and likes if needed
+export type PostComment = Database['public']['Tables']['post_comments']['Row'];
+export type PostLike = Database['public']['Tables']['post_likes']['Row'];
+
+/**
+ * Extended post type with author and other related information
+ */
+export interface PostWithRelations extends Omit<Post, 'author_id'> {
+  author: Profile;
+  isLiked?: boolean;
+  likes_count: number;
+  comments_count: number;
+  comments?: PostComment[];
 }
 
-export interface Post {
-  id: string;
-  userId: string | null;
-  content: string | null;
-  mediaUrl: string | null;
-  type: PostType;
-  visibility: PostVisibility;
-  status: PostStatus;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface PostDbWithRelations extends PostDb {
-  author: UserDb;
-  likes: { user_id: string }[];
-  comments: CommentDb[];
-}
-
-export interface PostWithRelations extends Post {
-  author: User;
-  likes: { userId: string }[];
-  comments: Comment[];
-}
-
-export type CreatePostInput = {
-  content: string | null;
-  media_url?: string | null;
-  post_type: PostType;
-  visibility?: PostVisibility;
-  user_id: string;
-};
-
-export function toPost(db: PostDb): Post {
+/**
+ * Transform a post with joined author data into a PostWithRelations object
+ */
+export function toPostWithRelations(
+  post: Post & { profiles: Profile, liked?: boolean }
+): PostWithRelations {
   return {
-    id: db.id,
-    userId: db.user_id,
-    content: db.content,
-    mediaUrl: db.media_url,
-    type: db.post_type,
-    visibility: db.visibility,
-    status: db.status,
-    createdAt: db.created_at,
-    updatedAt: db.updated_at
+    id: post.id,
+    content: post.content,
+    images: post.images,
+    type: post.type,
+    status: post.status,
+    visibility: post.visibility,
+    created_at: post.created_at,
+    updated_at: post.updated_at,
+    author: post.profiles,
+    isLiked: post.liked || false,
+    likes_count: post.likes_count,
+    comments_count: post.comments_count,
   };
 }
 
-export function toPostWithRelations(db: PostDbWithRelations): PostWithRelations {
-  return {
-    ...toPost(db),
-    author: toUser(db.author),
-    likes: db.likes.map(like => ({ userId: like.user_id })),
-    comments: db.comments.map(toComment)
-  };
+/**
+ * Transform an array of posts with joined data into PostWithRelations objects
+ */
+export function toPostsWithRelations(
+  posts: (Post & { profiles: Profile, liked?: boolean })[]
+): PostWithRelations[] {
+  return posts.map(toPostWithRelations);
 } 

@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/molecules/cards/Card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/molecules/display/Avatar'
 import { MapPin, Users, Video } from 'lucide-react'
 import { formatDate } from '@/backend/lib/utils/utils'
 import Link from 'next/link'

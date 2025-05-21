@@ -1,3 +1,5 @@
+"use client";
+
 // app/components/BodyContentSection.tsx
 import React from 'react';
 
@@ -7,8 +9,10 @@ type BodyContentSectionProps = {
 
 const BodyContentSection: React.FC<BodyContentSectionProps> = ({ content }) => {
     return (
-        <div className="px-10 py-5">
-            <p className="text-lg">{content}</p>
+        <div className="container mx-auto px-4 py-12 max-w-4xl">
+            <div className="bg-white rounded-lg shadow-sm p-8">
+                <p className="text-lg leading-relaxed text-gray-700">{content}</p>
+            </div>
         </div>
     );
 };

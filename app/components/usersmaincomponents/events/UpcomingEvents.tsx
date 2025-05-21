@@ -3,8 +3,8 @@
 import { Calendar, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { Button } from '@/app/components/ui/button'
-import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Card } from '@/app/components/molecules/cards/Card'
 import { useUpcomingEvents } from '@/hooks/useEvents'
 import { Event } from '@/backend/lib/types/event'
 

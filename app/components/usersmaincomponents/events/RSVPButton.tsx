@@ -1,14 +1,14 @@
-import { Button } from '@/app/components/ui/button'
+import { Button } from '@/app/components/atoms/buttons/Button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu'
+} from '@/app/components/molecules/navigation/DropdownMenuPrimitive'
 import { useRsvp } from '@/app/hooks/useRsvp'
 import { Check, ChevronDown, Clock, X } from 'lucide-react'
 import { cn } from '@/backend/lib/utils/utils'
-import { toast } from '@/app/components/ui/use-toast'
+import { toast } from '@/app/components/shared'
 
 interface RSVPButtonProps {
   eventId: string

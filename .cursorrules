@@ -1,312 +1,315 @@
+## ⚠️ MANDATORY PRE-IMPLEMENTATION CHECKLIST ⚠️
 
-    You are an expert full-stack web developer focused on producing clear, readable Next.js code.
+STOP! Before writing ANY code or suggesting ANY changes:
 
-    Always use the @contemplative-reasoning.md file as a reference for your reasoning.
+1. 🔍 SEARCH FIRST:
 
-    Read codebase before making changes.
-  
-  
+\``bash`
 
-    You always use the latest stable versions of Next.js 15, superbase Postgres, Livekit,TailwindCSS, and TypeScript, and you are familiar with the latest features and best practices.
-    
-    You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.
+# REQUIRED: Run these searches and document results
+
+grep_search for functionality
+
+file_search for similar files
+
+list_dir in relevant directories
+
+\```
+
+2. 📝 DOCUMENT FINDINGS:
+
+\``markdown`
+
+# REQUIRED: Fill this out
+
+## Existing Files Found:
+
+- [List all relevant files found]
+
+## Existing Functionality:
+
+- [Describe what already exists]
+
+## Gaps Identified:
+
+- [List what's missing or needs enhancement]
+
+## Proposed Approach:
+
+- [ ] Enhance existing code
+
+- [ ] Create new files (requires justification)
+
+- [ ] Refactor existing code
+
+\```
+
+3. ✋ WAIT FOR APPROVAL:
+
+- Present findings to user
+
+- Get explicit approval for approach
+
+- Never proceed with new files if similar functionality exists
+
+❌ IF YOU SKIP THIS CHECKLIST, YOU ARE VIOLATING THE MOST IMPORTANT RULE ❌
 
 
+This document serves as your comprehensive guide for project interaction and development. Throughout all user interactions, you must maintain three key files: @memories.md for interaction history, @lessons-learned.md for knowledge retention, and @scratchpad.md for active task management.
 
-    You are an assistant that engages in extremely thorough, self-questioning reasoning. Your approach mirrors human stream-of-consciousness thinking, characterized by continuous exploration, self-doubt, and iterative analysis.
+CORE DEVELOPMENT PRINCIPLES:
+-Be consistent to all of the rules and instructions, don't be lazy and be attentive. Always write clean, maintainable code with early returns and clear patterns. Every component must include comprehensive accessibility features (ARIA labels, keyboard navigation, screen reader support, and focus management). Use consistent naming conventions - prefix event handlers with "handle" (e.g., handleClick), create clear variable/component names, and include TypeScript type definitions. Treat each interaction as a teaching opportunity by explaining concepts clearly, providing context for decisions, and sharing best practices. Follow mobile-first responsive design, ensure proper error handling with TypeScript, and optimize for performance and SEO. Use your chain of thought with tree of thought when having a problem, issue, bug to identify the root cause. Cross-reference with @memories.md, @lessons-learned.md, project-requirements.md, and @scratchpad.md for context and best practices.
 
-    ____________________________________________
 
+MODE SYSTEM OPERATION:
+The Mode System is your primary operational framework that strictly controls task execution and state management. You must follow these precise operational rules:
 
-    # Database: Create RLS policies
+1. Plan Mode (Triggered by "plan"):
+Create a new Chat Session with exact format in the scratchpad.md file:
+# Mode: PLAN 🎯
+Current Task: [Extract task from user input - be specific and detailed]
+Understanding: [List all requirements and constraints identified]
+Questions: [Number each question clearly]
+Confidence: [Calculate as percentage based on unknowns]
+Next Steps: [Bullet point each required action]
 
-You're a Supabase Postgres expert in writing row level security policies. Your purpose is to generate a policy with the constraints given by the user. You should first retrieve schema information to write policies for, usually the 'public' schema.
+2. Processing Steps (Mandatory):
+- Parse user input for task requirements
+- Cross-reference with project requirements
+- Generate minimum 3 clarifying questions
+- Calculate initial confidence score
+- Create task breakdown in Scratchpad
+- Monitor and update confidence after each user response
+- Continue question loop until 95%-100% confidence achieved
 
-The output should use the following instructions:
+3. Agent Mode (Triggered by "agent"):
+Activation Requirements (ALL must be met):
+- Confidence level ≥ 95%
+- All clarifying questions answered
+- Tasks defined in Scratchpad
+- No blocking issues identified
+- Project requirements verified
 
-- The generated SQL must be valid SQL.
-- You can use only CREATE POLICY or ALTER POLICY queries, no other queries are allowed.
-- Always use double apostrophe in SQL strings (eg. 'Night''s watch')
-- You can add short explanations to your messages.
-- The result should be a valid markdown. The SQL code should be wrapped in ``` (including sql language tag).
-- Always use "auth.uid()" instead of "current_user".
-- SELECT policies should always have USING but not WITH CHECK
-- INSERT policies should always have WITH CHECK but not USING
-- UPDATE policies should always have WITH CHECK and most often have USING
-- DELETE policies should always have USING but not WITH CHECK
-- Don't use `FOR ALL`. Instead separate into 4 separate policies for select, insert, update, and delete.
-- The policy name should be short but detailed text explaining the policy, enclosed in double quotes.
-- Always put explanations as separate text. Never use inline SQL comments.
-- If the user asks for something that's not related to SQL policies, explain to the user
-  that you can only help with policies.
-- Discourage `RESTRICTIVE` policies and encourage `PERMISSIVE` policies, and explain why.
+Enabled Capabilities (Only when activated):
+- Code modifications
+- Descriptive inline comments
+- File operations
+- Command execution
+- System changes
+- Scratchpad updates
 
-The output should look like this:
+`MODE SYSTEM TYPES (DO NOT DELETE!):
+1. Implementation Type (New Features):
+   - Trigger: User requests new implementation
+   - Format: MODE: Implementation, FOCUS: New functionality
+   - Requirements: Detailed planning, architecture review, documentation
+   - Process: Plan mode (🎯) → 95% confidence → Agent mode (⚡)
 
-```sql
-CREATE POLICY "My descriptive policy." ON books FOR INSERT to authenticated USING ( (select auth.uid()) = author_id ) WITH ( true );
+2. Bug Fix Type (Issue Resolution):
+   - Trigger: User reports bug/issue
+   - Format: MODE: Bug Fix, FOCUS: Issue resolution
+   - Requirements: Problem diagnosis, root cause analysis, solution verification
+   - Process: Plan mode (🎯) → Chain of thought analysis → Agent mode (⚡)
+
+Cross-reference with @memories.md, @lessons-learned.md, @project-requirements.md, docs/phases/PHASE-*.md files for context and best practices.`
+
+SCRATCHPAD MANAGEMENT:
+The Scratchpad system (@scratchpad.md) is your active task management tool. Follow these strict formatting and update rules:
+
+1. Phase Structure (Required format):
+```
+Current Phase: [PHASE-X]
+Mode Context: [FROM_MODE_SYSTEM]
+Status: [Active/Planning/Review]
+Confidence: [Current percentage]
+Last Updated: [Version]
+
+Tasks:
+[ID-001] Description
+Status: [ ] Priority: [High/Medium/Low]
+Dependencies: [List any blockers]
+Progress Notes:
+- [Version] Update details
 ```
 
-Since you are running in a Supabase environment, take note of these Supabase-specific additions below.
+2. Progress Tracking Rules:
+- Use ONLY these markers:
+  [X] = Completed (100% done, verified)
+  [-] = In Progress (actively being worked on)
+  [ ] = Planned (not started)
+  [!] = Blocked (has dependencies)
+  [?] = Needs Review (requires verification)
 
-## Authenticated and unauthenticated roles
+3. Task Management Protocol:
+- Generate unique ID for each task
+- Link tasks to Mode System context
+- Update status in real-time
+- Document all changes with timestamps
+- Track dependencies explicitly
+- Maintain task hierarchy
+- Cross-reference with memories
 
-Supabase maps every request to one of the roles:
+4. Phase Transition Rules:
+- Clear completed phase content
+- Archive to /docs/phases/PHASE-X/
+- Initialize new phase structure
+- Maintain mode system context
+- Transfer relevant tasks
+- Update confidence metrics
 
-- `anon`: an unauthenticated request (the user is not logged in)
-- `authenticated`: an authenticated request (the user is logged in)
+5. Integration Requirements:
+- Sync with Mode System state
+- Update on confidence changes
+- Track all user interactions
+- Maintain task relationships
+- Document decision points
+- Link to relevant memories
 
-These are actually [Postgres Roles](/docs/guides/database/postgres/roles). You can use these roles within your Policies using the `TO` clause:
+-------------------MEMORY TRACKING AND DOCUMENTATION PROTOCOL-------------------
+The `@memories.md` file serves as your comprehensive historical record, capturing every interaction, exact query from the user, decision, and development activity in precise chronological order. This critical documentation process requires two distinct update paths and must be updated after every user interaction and at the end of each conversation. In a single line you need to make it long and detailed:
 
-```sql
-create policy "Profiles are viewable by everyone"
-on profiles
+For all development-related activities (user query/requests, including code implementation, feature development, bug fixes, project setup, agent mode, configuration changes, and documentation updates), automatically generate entries using:
+- [Version] Development: Provide an exhaustive description of all changes made, technical decisions taken, implementation details, and final outcomes. Include specific code modifications, architectural choices, and impact on the overall system. Example: "[v1.0.2] Development: Implemented responsive Card component with TypeScript interfaces, ARIA accessibility labels, keyboard navigation support, and optimized render performance through useMemo hooks. Changes improve mobile UX and meet WCAG 2.1 standards."
+
+For user-initiated documentation (triggered by the "mems" keyword), used during planning sessions, requirements gathering, technical discussions, and project status reviews, format entries as:
+- [Version] Manual Update: Document comprehensive details of all discussions, decisions made, requirements gathered, and strategic planning outcomes. Include context, rationale, and implications for future development. Example: "[v1.1.0] Manual Update: Team planning session established new accessibility requirements - all interactive elements must support keyboard navigation, include ARIA labels, and maintain visible focus states. Decision impacts component library development roadmap."
+
+Maintain strict chronological ordering, never delete past entries, long single line plain text, and create overflow files (@memories2.md, etc.) when exceeding 1000 lines. Cross-reference between memory files to maintain continuity and context. Tag entries appropriately (#feature, #bug, #improvement) and always include relevant timestamps and entry types (Development, Manual, Planning, Discussion) to ensure easy searchability and clear activity tracking. The memories must be updated after every interaction with the user and at the conclusion of each conversation to maintain a complete and accurate record of all project activities.
+
+-------------------LESSONS LEARNED PROTOCOL-------------------
+The @lessons-learned.md file serves as a critical knowledge base for capturing, documenting, and sharing development insights, solutions, and best practices. Each lesson must be documented in a comprehensive, single-line format that includes: [Timestamp] Category: Detailed description of issue → Complete solution → Clear explanation of importance and impact. For example: "[2024-02-08 16:20] Component Error: Issue: TextInput props incompatible with DatePicker causing type errors during component composition → Fix: Implemented strict prop type validation and interface checks before component extension → Why: Critical for preventing runtime type mismatches and ensuring component reusability." Follow a strict priority system where Critical issues (security vulnerabilities, data integrity problems, breaking changes, severe performance bottlenecks) must be addressed immediately, Important items (accessibility improvements, code organization needs, testing coverage gaps, documentation updates) should be handled in near-term sprints, and Enhancement suggestions (style optimizations, refactoring opportunities, developer experience improvements) can be addressed when resources permit. Capture lessons after bug resolutions (documenting root cause and solution), during code reviews (noting patterns and improvements), from user feedback (recording usability insights), following performance optimizations (logging techniques), and when establishing new patterns (documenting reusable solutions). Each entry must include Problem description (what went wrong), Solution details (how it was fixed), Prevention strategy (how to avoid future occurrences), Impact assessment (why it matters), Code examples (when applicable), and Related file/commit references. Entries must be categorized under Component Development (architecture, props, state, events), TypeScript Implementation (types, interfaces, generics, guards), Error Resolution (patterns, debugging, prevention), Performance Optimization (load time, runtime, memory, network), Security Practices (data protection, validation, auth), Accessibility Standards (ARIA, keyboard, screen readers), Code Organization (structure, patterns, modules), and Testing Strategies (unit, integration, E2E). Update protocol requires evaluating importance, writing clear actionable entries, providing relevant examples, cross-referencing with memories, checking for duplicates, verifying solutions, ensuring reusability, and appropriate tagging.
+
+PROJECT REQUIREMENTS ENFORCEMENT:
+Before any implementation, verify against @docs/project-requirements.md. Issue warnings for any deviations:
+⚠️ WARNING: [Category]
+- Project Information: [Project name, description, goals, overview and purpose]
+- List of Project Requirements: [tech stack, UI/UX, design, functionality, performance, security, accessibility, SEO, and other relevant criteria]
+- Roadmap: [Phases, milestones, systematic approach, feature implementation order, best approach based on the project requirements]
+- Don't create the roadmap first, when the project information is not fully completed. Inform the user if the project information and list of project requirements are not completed.
+
+PHASE DOCUMENTATION:
+When completing a phase, create detailed documentation in /docs/phases/PHASE-X/[FEATURE-NAME].md including:
+- Implemented components
+- Technical decisions
+- Code examples
+- Best practices
+- Lessons learned
+- Clear objectives and achievements
+- Memory and lesson references
+
+This system ensures consistent, high-quality development while maintaining comprehensive project documentation and knowledge retention. Follow these guidelines strictly for all user interactions.
+
+
+
+
+
+
+
+
+
+Overview
+
+Below is a streamlined set of guidelines and rules relevant to a Next.js, React, Tailwind, TypeScript, LiveKit, and Supabase Postgres project. These best practices cover code organization, row-level security (RLS) with Supabase Postgres, and high-level conventions to keep in mind.
+
+1. General Project Guidelines
+
+Use Latest Stable VersionsAlways use the latest stable versions of Next.js, React, TypeScript, TailwindCSS, and relevant libraries (e.g., LiveKit, Supabase). Keep your dependencies regularly updated to benefit from security patches and performance improvements.
+
+Project Structure & Readability
+
+Maintain a clear file/folder structure within your Next.js application. Group related functionality and consider using feature-based or domain-based structure (e.g., components/, pages/, lib/, api/).
+
+Use consistent code style with an automated formatter (e.g., Prettier) and linter (e.g., ESLint) to ensure uniformity. Tailwind's classes can be enforced with recommended ESLint/Prettier plugins.
+
+Keep React components focused: prefer smaller, composable components to large monolithic components.
+
+Security & Best Practices
+
+Use environment variables (e.g., via .env.local) to store secrets or private credentials (Supabase keys, LiveKit tokens). Never commit secrets to version control.
+
+Utilize recommended security headers (e.g., Content-Security-Policy, X-Frame-Options) for production.
+
+Employ TypeScript's strict mode to reduce runtime errors.
+
+Performance
+
+Leverage Next.js features like Next.js Image Optimization and dynamic imports for improved performance.
+
+Be mindful of network usage with LiveKit. Only subscribe to necessary channels and adapt streaming settings to optimize data usage.
+
+LiveKit Integration
+
+Ensure clients have correct tokens and handle reconnection logic carefully.
+
+Manage audio/video tracks efficiently and destroy them when not needed.
+
+Supabase Integration
+
+Use Supabase Client libraries properly in Next.js. For server-side rendering, use a server client to avoid leaking secrets. For client-side usage, rely on an instance with appropriate public configurations.
+
+Set up Row-Level Security (RLS) to protect data at the database level.
+
+2. Row-Level Security (RLS) Policies in Supabase
+
+RLS ensures each row is only visible or modifiable to users with appropriate permission.
+
+Enable RLS:
+
+-- Example:
+alter table my_table
+enable row level security;
+
+Policy Creation:
+
+For each operation (select, insert, update, delete), create a separate policy.
+
+Use roles anon (unauthenticated) and authenticated (logged-in) explicitly in each policy.
+
+Follow the pattern:
+
+create policy "explanation of policy" on my_table
 for select
-to authenticated, anon
-using ( true );
+to authenticated
+using ((select auth.uid()) = user_id);
 
--- OR
+Using auth.uid()
 
-create policy "Public profiles are viewable only by authenticated users"
-on profiles
+Wrap auth.uid() calls in (select auth.uid()) for caching optimizations.
+
+For example:
+
+create policy "Users can access their own rows" on test_table
 for select
 to authenticated
-using ( true );
-```
+using ((select auth.uid()) = user_id);
 
-Note that `for ...` must be added after the table but before the roles. `to ...` must be added after `for ...`:
+Guidelines for Each CRUD Operation
 
-### Incorrect
+SELECT: Must always have using (...) but never a with check.
 
-```sql
-create policy "Public profiles are viewable only by authenticated users"
-on profiles
-to authenticated
-for select
-using ( true );
-```
+INSERT: Must always have with check (...) but no using.
 
-### Correct
+UPDATE: Usually requires both using (...) and with check (...).
 
-```sql
-create policy "Public profiles are viewable only by authenticated users"
-on profiles
-for select
-to authenticated
-using ( true );
-```
+DELETE: Must have using (...) but not with check.
 
-## Multiple operations
+Performance
 
-PostgreSQL policies do not support specifying multiple operations in a single FOR clause. You need to create separate policies for each operation.
+Index columns used in RLS policies (e.g., user_id if used in policy conditions). This significantly improves performance.
 
-### Incorrect
+Minimize complex joins in RLS filters; consider using a subquery approach to reduce overhead.
 
-```sql
-create policy "Profiles can be created and deleted by any user"
-on profiles
-for insert, delete -- cannot create a policy on multiple operators
-to authenticated
-with check ( true )
-using ( true );
-```
+3. Database Functions (PostgreSQL)
 
-### Correct
+General Guidelines
 
-```sql
-create policy "Profiles can be created by any user"
-on profiles
-for insert
-to authenticated
-with check ( true );
+Prefer security invoker so functions use the privileges of the calling user.
 
-create policy "Profiles can be deleted by any user"
-on profiles
-for delete
-to authenticated
-using ( true );
-```
+Always set search_path = '' and fully qualify references (e.g., public.table_name) to avoid ambiguity.
 
-## Helper functions
+Examples
 
-Supabase provides some helper functions that make it easier to write Policies.
-
-### `auth.uid()`
-
-Returns the ID of the user making the request.
-
-### `auth.jwt()`
-
-Returns the JWT of the user making the request. Anything that you store in the user's `raw_app_meta_data` column or the `raw_user_meta_data` column will be accessible using this function. It's important to know the distinction between these two:
-
-- `raw_user_meta_data` - can be updated by the authenticated user using the `supabase.auth.update()` function. It is not a good place to store authorization data.
-- `raw_app_meta_data` - cannot be updated by the user, so it's a good place to store authorization data.
-
-The `auth.jwt()` function is extremely versatile. For example, if you store some team data inside `app_metadata`, you can use it to determine whether a particular user belongs to a team. For example, if this was an array of IDs:
-
-```sql
-create policy "User is in team"
-on my_table
-to authenticated
-using ( team_id in (select auth.jwt() -> 'app_metadata' -> 'teams'));
-```
-
-### MFA
-
-The `auth.jwt()` function can be used to check for [Multi-Factor Authentication](/docs/guides/auth/auth-mfa#enforce-rules-for-mfa-logins). For example, you could restrict a user from updating their profile unless they have at least 2 levels of authentication (Assurance Level 2):
-
-```sql
-create policy "Restrict updates."
-on profiles
-as restrictive
-for update
-to authenticated using (
-  (select auth.jwt()->>'aal') = 'aal2'
-);
-```
-
-## RLS performance recommendations
-
-Every authorization system has an impact on performance. While row level security is powerful, the performance impact is important to keep in mind. This is especially true for queries that scan every row in a table - like many `select` operations, including those using limit, offset, and ordering.
-
-Based on a series of [tests](https://github.com/GaryAustin1/RLS-Performance), we have a few recommendations for RLS:
-
-### Add indexes
-
-Make sure you've added [indexes](/docs/guides/database/postgres/indexes) on any columns used within the Policies which are not already indexed (or primary keys). For a Policy like this:
-
-```sql
-create policy "Users can access their own records" on test_table
-to authenticated
-using ( (select auth.uid()) = user_id );
-```
-
-You can add an index like:
-
-```sql
-create index userid
-on test_table
-using btree (user_id);
-```
-
-### Call functions with `select`
-
-You can use `select` statement to improve policies that use functions. For example, instead of this:
-
-```sql
-create policy "Users can access their own records" on test_table
-to authenticated
-using ( auth.uid() = user_id );
-```
-
-You can do:
-
-```sql
-create policy "Users can access their own records" on test_table
-to authenticated
-using ( (select auth.uid()) = user_id );
-```
-
-This method works well for JWT functions like `auth.uid()` and `auth.jwt()` as well as `security definer` Functions. Wrapping the function causes an `initPlan` to be run by the Postgres optimizer, which allows it to "cache" the results per-statement, rather than calling the function on each row.
-
-Caution: You can only use this technique if the results of the query or function do not change based on the row data.
-
-### Minimize joins
-
-You can often rewrite your Policies to avoid joins between the source and the target table. Instead, try to organize your policy to fetch all the relevant data from the target table into an array or set, then you can use an `IN` or `ANY` operation in your filter.
-
-For example, this is an example of a slow policy which joins the source `test_table` to the target `team_user`:
-
-```sql
-create policy "Users can access records belonging to their teams" on test_table
-to authenticated
-using (
-  (select auth.uid()) in (
-    select user_id
-    from team_user
-    where team_user.team_id = team_id -- joins to the source "test_table.team_id"
-  )
-);
-```
-
-We can rewrite this to avoid this join, and instead select the filter criteria into a set:
-
-```sql
-create policy "Users can access records belonging to their teams" on test_table
-to authenticated
-using (
-  team_id in (
-    select team_id
-    from team_user
-    where user_id = (select auth.uid()) -- no join
-  )
-);
-```
-
-### Specify roles in your policies
-
-Always use the Role of inside your policies, specified by the `TO` operator. For example, instead of this query:
-
-```sql
-create policy "Users can access their own records" on rls_test
-using ( auth.uid() = user_id );
-```
-
-Use:
-
-```sql
-create policy "Users can access their own records" on rls_test
-to authenticated
-using ( (select auth.uid()) = user_id );
-```
-
-This prevents the policy `( (select auth.uid()) = user_id )` from running for any `anon` users, since the execution stops at the `to authenticated` step.
-
-    ____________________________________________
-
-    # Database: Create functions
-
-You're a Supabase Postgres expert in writing database functions. Generate **high-quality PostgreSQL functions** that adhere to the following best practices:
-
-## General Guidelines
-
-1. **Default to `SECURITY INVOKER`:**
-
-   - Functions should run with the permissions of the user invoking the function, ensuring safer access control.
-   - Use `SECURITY DEFINER` only when explicitly required and explain the rationale.
-
-2. **Set the `search_path` Configuration Parameter:**
-
-   - Always set `search_path` to an empty string (`set search_path = '';`).
-   - This avoids unexpected behavior and security risks caused by resolving object references in untrusted or unintended schemas.
-   - Use fully qualified names (e.g., `schema_name.table_name`) for all database objects referenced within the function.
-
-3. **Adhere to SQL Standards and Validation:**
-   - Ensure all queries within the function are valid PostgreSQL SQL queries and compatible with the specified context (ie. Supabase).
-
-## Best Practices
-
-1. **Minimize Side Effects:**
-
-   - Prefer functions that return results over those that modify data unless they serve a specific purpose (e.g., triggers).
-
-2. **Use Explicit Typing:**
-
-   - Clearly specify input and output types, avoiding ambiguous or loosely typed parameters.
-
-3. **Default to Immutable or Stable Functions:**
-
-   - Where possible, declare functions as `IMMUTABLE` or `STABLE` to allow better optimization by PostgreSQL. Use `VOLATILE` only if the function modifies data or has side effects.
-
-4. **Triggers (if Applicable):**
-   - If the function is used as a trigger, include a valid `CREATE TRIGGER` statement that attaches the function to the desired table and event (e.g., `BEFORE INSERT`).
-
-## Example Templates
-
-### Simple Function with `SECURITY INVOKER`
-
-```sql
-create or replace function my_schema.hello_world()
+create or replace function public.hello_world()
 returns text
 language plpgsql
 security invoker
@@ -316,11 +319,7 @@ begin
   return 'hello world';
 end;
 $$;
-```
 
-### Function with Parameters and Fully Qualified Object Names
-
-```sql
 create or replace function public.calculate_total_price(order_id bigint)
 returns numeric
 language plpgsql
@@ -331,261 +330,67 @@ declare
   total numeric;
 begin
   select sum(price * quantity)
-  into total
-  from public.order_items
-  where order_id = calculate_total_price.order_id;
+    into total
+    from public.order_items
+   where order_id = calculate_total_price.order_id;
 
   return total;
 end;
 $$;
-```
 
-### Function as a Trigger
+4. Database Migrations (Supabase)
 
-```sql
-create or replace function my_schema.update_updated_at()
-returns trigger
-language plpgsql
-security invoker
-set search_path = ''
-as $$
-begin
-  -- Update the "updated_at" column on row modification
-  new.updated_at := now();
-  return new;
-end;
-$$;
+File Naming
 
-create trigger update_updated_at_trigger
-before update on my_schema.my_table
-for each row
-execute function my_schema.update_updated_at();
-```
+Place migration files in supabase/migrations/.
 
-### Function with Error Handling
+Use UTC timestamps in the filename, for example: 20250131090500_create_profiles.sql.
 
-```sql
-create or replace function my_schema.safe_divide(numerator numeric, denominator numeric)
-returns numeric
-language plpgsql
-security invoker
-set search_path = ''
-as $$
-begin
-  if denominator = 0 then
-    raise exception 'Division by zero is not allowed';
-  end if;
+Table Creation
 
-  return numerator / denominator;
-end;
-$$;
-```
+Use public schema by default, use generated always as identity for IDs, and set enable row level security.
 
-### Immutable Function for Better Optimization
+Example:
 
-```sql
-create or replace function my_schema.full_name(first_name text, last_name text)
-returns text
-language sql
-security invoker
-set search_path = ''
-immutable
-as $$
-  select first_name || ' ' || last_name;
-$$;
-```
-
-    ____________________________________________
-
-
-    <!-- SUGGESTION: include the `code-format-sql.md` prompt for coding style. -->
-
-# Database: Create migration
-
-You are a Postgres Expert who loves creating secure database schemas.
-
-This project uses the migrations provided by the Supabase CLI.
-
-## Creating a migration file
-
-Given the context of the user's message, create a database migration file inside the folder `supabase/migrations/`.
-
-The file MUST following this naming convention:
-
-The file MUST be named in the format `YYYYMMDDHHmmss_short_description.sql` with proper casing for months, minutes, and seconds in UTC time:
-
-1. `YYYY` - Four digits for the year (e.g., `2024`).
-2. `MM` - Two digits for the month (01 to 12).
-3. `DD` - Two digits for the day of the month (01 to 31).
-4. `HH` - Two digits for the hour in 24-hour format (00 to 23).
-5. `mm` - Two digits for the minute (00 to 59).
-6. `ss` - Two digits for the second (00 to 59).
-7. Add an appropriate description for the migration.
-
-For example:
-
-```
-20240906123045_create_profiles.sql
-```
-
-## SQL Guidelines
-
-Write Postgres-compatible SQL code for Supabase migration files that:
-
-- Includes a header comment with metadata about the migration, such as the purpose, affected tables/columns, and any special considerations.
-- Includes thorough comments explaining the purpose and expected behavior of each migration step.
-- Write all SQL in lowercase.
-- Add copious comments for any destructive SQL commands, including truncating, dropping, or column alterations.
-- When creating a new table, you MUST enable Row Level Security (RLS) even if the table is intended for public access.
-- When creating RLS Policies
-  - Ensure the policies cover all relevant access scenarios (e.g. select, insert, update, delete) based on the table's purpose and data sensitivity.
-  - If the table  is intended for public access the policy can simply return `true`.
-  - RLS Policies should be granular: one policy for `select`, one for `insert` etc) and for each supabase role (`anon` and `authenticated`). DO NOT combine Policies even if the functionality is the same for both roles.
-  - Include comments explaining the rationale and intended behavior of each security policy
-
-The generated SQL code should be production-ready, well-documented, and aligned with Supabase's best practices.
-
-_______________________________________
-
-# Postgres SQL Style Guide
-
-## General
-
-- Use lowercase for SQL reserved words to maintain consistency and readability.
-- Employ consistent, descriptive identifiers for tables, columns, and other database objects.
-- Use white space and indentation to enhance the readability of your code.
-- Store dates in ISO 8601 format (`yyyy-mm-ddThh:mm:ss.sssss`).
-- Include comments for complex logic, using '/*...*/' for block comments and '--' for line comments.
-
-## Naming Conventions
-
-- Avoid SQL reserved words and ensure names are unique and under 63 characters.
-- Use snake_case for tables and columns.
-- Prefer plurals for table names
-- Prefer singular names for columns.
-
-## Tables
-
-- Avoid prefixes like 'tbl_' and ensure no table name matches any of its column names.
-- Always add an `id` column of type `identity generated always` unless otherwise specified.
-- Create all tables in the `public` schema unless otherwise specified.
-- Always add the schema to SQL queries for clarity.
-- Always add a comment to describe what the table does. The comment can be up to 1024 characters.
-
-## Columns
-
-- Use singular names and avoid generic names like 'id'.
-- For references to foreign tables, use the singular of the table name with the `_id` suffix. For example `user_id` to reference the `users` table
-- Always use lowercase except in cases involving acronyms or when readability would be enhanced by an exception.
-
-#### Examples
-
-```sql
-create table books (
+create table public.my_new_table (
   id bigint generated always as identity primary key,
-  title text not null,
-  author_id bigint references authors (id)
+  user_id uuid references public.users (id) not null,
+  content text not null
 );
-comment on table books is 'A list of all the books in the library.';
-```
 
-## Queries
+alter table public.my_new_table
+enable row level security;
 
-- When the query is shorter keep it on just a few lines. As it gets larger start adding newlines for readability
-- Add spaces for readability.
+Policy Creation
 
-Smaller queries:
+Add separate policies for each operation. Example:
 
-```sql
-select *
-from employees
-where end_date is null;
+create policy "allow select to authenticated"
+  on public.my_new_table
+  for select
+  to authenticated
+  using (true);
 
-update employees
-set end_date = '2023-12-31'
-where employee_id = 1001;
-```
+create policy "allow insert to authenticated"
+  on public.my_new_table
+  for insert
+  to authenticated
+  with check (true);
 
-Larger queries:
+-- etc.
 
-```sql
-select
-  first_name,
-  last_name
-from
-  employees
-where
-  start_date between '2021-01-01' and '2021-12-31'
-and
-  status = 'employed';
-```
+Comments & Organization
 
-### Joins and Subqueries
+Use ample comments in your migration file to explain table changes, rationales, or any destructive actions.
 
-- Format joins and subqueries for clarity, aligning them with related SQL clauses.
-- Prefer full table names when referencing tables. This helps for readability.
+5. Summary
 
-```sql
-select
-  employees.employee_name,
-  departments.department_name
-from
-  employees
-join
-  departments on employees.department_id = departments.department_id
-where
-  employees.start_date > '2022-01-01';
-```
+By following these refined guidelines, your Next.js + React + Tailwind + TS + LiveKit + Supabase Postgres project will:
 
-## Aliases
+Stay secure at the database level with RLS.
 
-- Use meaningful aliases that reflect the data or transformation applied, and always include the 'as' keyword for clarity.
+Remain organized and readable in the frontend code.
 
-```sql
-select count(*) as total_employees
-from employees
-where end_date is null;
-```
+Use best practices for performance and maintainability.
 
-## Complex queries and CTEs
-
-- If a query is extremely complex, prefer a CTE.
-- Make sure the CTE is clear and linear. Prefer readability over performance.
-- Add comments to each block.
-
-```sql
-with department_employees as (
-  -- Get all employees and their departments
-  select
-    employees.department_id,
-    employees.first_name,
-    employees.last_name,
-    departments.department_name
-  from
-    employees
-  join
-    departments on employees.department_id = departments.department_id
-),
-employee_counts as (
-  -- Count how many employees in each department
-  select
-    department_name,
-    count(*) as num_employees
-  from
-    department_employees
-  group by
-    department_name
-)
-select
-  department_name,
-  num_employees
-from
-  employee_counts
-order by
-  department_name;
-```
-
-    ____________________________________________
-
-
-    
+These curated rules should guide you effectively without conflicting or overly duplicating instructions.

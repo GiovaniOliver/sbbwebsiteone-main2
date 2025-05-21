@@ -5,7 +5,10 @@ import { PostDbWithRelations, toPostWithRelations } from '../../../../backend/li
 import { ApiResponse } from '../../../../backend/lib/types/api';
 
 export async function GET(request: Request, { params }: { params: { postId: string } }) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ 
+    cookies: () => cookieStore 
+  });
   
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -48,7 +51,10 @@ export async function GET(request: Request, { params }: { params: { postId: stri
 }
 
 export async function PATCH(request: Request, { params }: { params: { postId: string } }) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ 
+    cookies: () => cookieStore 
+  });
   
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -107,7 +113,10 @@ export async function PATCH(request: Request, { params }: { params: { postId: st
 }
 
 export async function DELETE(request: Request, { params }: { params: { postId: string } }) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ 
+    cookies: () => cookieStore 
+  });
   
   try {
     const { data: { user } } = await supabase.auth.getUser();

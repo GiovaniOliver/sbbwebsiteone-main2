@@ -63,11 +63,32 @@ export async function POST(request: Request) {
 
   try {
     const json = await request.json();
+    
+    // Validate input format
+    if (!json.title || !json.startDate || !json.endDate) {
+      throw new Error('Missing required fields');
+    }
+    
+    if (new Date(json.startDate) >= new Date(json.endDate)) {
+      throw new Error('End date must be after start date');
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
+    // Validate user role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+      
+    if (profile?.role !== 'organizer') {
+      throw new Error('Insufficient permissions');
+    }
+
     // Create event data with proper DB types
-    const eventData: CreateEventInput = {
+    const eventData: CreateEventInput = { 
       title: json.title,
       description: json.description,
       start_date: new Date(json.startDate).toISOString(),
@@ -75,7 +96,8 @@ export async function POST(request: Request) {
       location: json.location,
       is_virtual: json.isVirtual,
       organizer_id: user.id,
-      max_attendees: json.maxAttendees
+      max_attendees: json.maxAttendees,
+      status: 'upcoming'  // Default status for new events
     };
 
     const { data: event, error } = await supabase
@@ -103,4 +125,4 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(response, { status: 500 });
   }
-} 
+}

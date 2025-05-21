@@ -5,74 +5,88 @@ import { NotificationDbWithRelations, toNotificationWithRelations } from '../../
 import { ApiResponse } from '../../../backend/lib/types/api';
 
 // GET /api/notifications
-export async function GET() {
-  const supabase = createRouteHandlerClient({ cookies });
-
+export async function GET(request: Request) {
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ 
+    cookies: () => cookieStore 
+  });
+  
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
-    const { data: notifications, error } = await supabase
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '10');
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const offset = (page - 1) * limit;
+
+    // Get notifications with their related user info
+    const { data: notifications, error, count } = await supabase
       .from('notifications')
       .select(`
         *,
-        actor:users!notifications_actor_id_fkey(*),
-        post:posts(*),
-        event:events(*)
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+        sender:sender_id (id, username, first_name, last_name, image_url)
+      `, { count: 'exact' })
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
-    const response: ApiResponse<typeof notifications> = {
-      success: true,
-      data: notifications.map(notification => 
-        toNotificationWithRelations(notification as NotificationDbWithRelations)
-      )
-    };
+    // Calculate pagination info
+    const totalPages = Math.ceil((count || 0) / limit);
+    const hasMore = page < totalPages;
 
-    return NextResponse.json(response);
+    return NextResponse.json({
+      notifications,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: totalPages,
+        hasMore
+      }
+    });
   } catch (error) {
     console.error('Error fetching notifications:', error);
-    const response: ApiResponse<null> = {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch notifications'
-    };
-    return NextResponse.json(response, { status: 500 });
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
 // PATCH /api/notifications
 export async function PATCH(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies });
-
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ 
+    cookies: () => cookieStore 
+  });
+  
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
-    const { notificationIds } = await request.json();
-    if (!Array.isArray(notificationIds)) throw new Error('Invalid notification IDs');
+    const { notification_ids } = await request.json();
+    
+    if (!notification_ids || !Array.isArray(notification_ids) || notification_ids.length === 0) {
+      return new Response('Invalid request: notification_ids must be a non-empty array', { status: 400 });
+    }
 
-    const { error } = await supabase
+    // Mark the specified notifications as read, ensuring they belong to the user
+    const { data, error } = await supabase
       .from('notifications')
-      .update({ is_read: true })
-      .in('id', notificationIds)
-      .eq('user_id', user.id);
+      .update({ read: true, updated_at: new Date().toISOString() })
+      .in('id', notification_ids)
+      .eq('user_id', session.user.id)
+      .select();
 
     if (error) throw error;
 
-    const response: ApiResponse<null> = {
-      success: true
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json({ updated: data });
   } catch (error) {
     console.error('Error marking notifications as read:', error);
-    const response: ApiResponse<null> = {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update notifications'
-    };
-    return NextResponse.json(response, { status: 500 });
+    return new Response('Internal Server Error', { status: 500 });
   }
 }

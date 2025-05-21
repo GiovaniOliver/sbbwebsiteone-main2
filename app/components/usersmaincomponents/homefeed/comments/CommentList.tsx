@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '../../../ui/shared/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/molecules/inputs/SelectPrimitive"
 import CommentItem from './CommentItem'
 import CommentComposer from './CommentComposer'
 import { useInView } from 'react-intersection-observer'
@@ -105,28 +105,28 @@ export default function CommentList({ postId, initialComments = [] }: CommentLis
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 bg-white z-10 p-4 border-b">
+      <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Comments</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Comments</h3>
           <div className="flex gap-2">
             <Select value={sortBy} onValueChange={handleSort}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px] text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">Most Recent</SelectItem>
-                <SelectItem value="likes">Most Liked</SelectItem>
-                <SelectItem value="relevant">Most Relevant</SelectItem>
+              <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <SelectItem value="recent" className="text-gray-800 dark:text-gray-200">Most Recent</SelectItem>
+                <SelectItem value="likes" className="text-gray-800 dark:text-gray-200">Most Liked</SelectItem>
+                <SelectItem value="relevant" className="text-gray-800 dark:text-gray-200">Most Relevant</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterBy} onValueChange={handleFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px] text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Comments</SelectItem>
-                <SelectItem value="top-level">Top Level Only</SelectItem>
-                <SelectItem value="following">Following Only</SelectItem>
+              <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <SelectItem value="all" className="text-gray-800 dark:text-gray-200">All Comments</SelectItem>
+                <SelectItem value="top-level" className="text-gray-800 dark:text-gray-200">Top Level Only</SelectItem>
+                <SelectItem value="following" className="text-gray-800 dark:text-gray-200">Following Only</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -134,7 +134,7 @@ export default function CommentList({ postId, initialComments = [] }: CommentLis
         <CommentComposer postId={postId} onCommentAdded={handleNewComment} />
       </div>
 
-      <div className="space-y-4 p-4">
+      <div className="space-y-4 p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
         {comments.map(comment => (
           <CommentItem
             key={comment.id}

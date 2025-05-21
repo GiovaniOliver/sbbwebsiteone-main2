@@ -1,6 +1,6 @@
 'use client'
 
-import { Card } from '../../../ui/shared/card'
+import { Card } from '@/app/components/molecules/cards/Card'
 
 const EMOJI_CATEGORIES = {
   'Smileys & People': ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘'],

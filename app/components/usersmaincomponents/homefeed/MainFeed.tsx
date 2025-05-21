@@ -4,11 +4,12 @@ import { useCallback, useEffect } from 'react';
 import { usePosts } from '@/hooks/usePosts';
 import Post from './Post';
 import { useUser } from '@/hooks/useUser';
-import { Skeleton } from '@/app/components/ui/skeleton';
+import { Skeleton } from '@/app/components/atoms/feedback/Skeleton';
 import CreatePost from './CreatePost';
 import { useInView } from 'react-intersection-observer';
 import StoriesList from './StoriesList';
 import { ErrorBoundary } from 'react-error-boundary';
+import DebugPanel from './DebugPanel';
 
 interface MainFeedProps {
   userId?: string;
@@ -68,9 +69,16 @@ export default function MainFeed({ userId }: MainFeedProps) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
+      {/* Debug Panel - remove in production */}
+      <DebugPanel />
       {/* Stories Section */}
       {!userId && (
-        <ErrorBoundary fallback={<div className="text-red-500">Error loading stories</div>}>
+        <ErrorBoundary fallbackRender={({error}) => (
+          <div className="text-red-500 p-4 bg-red-50 rounded-lg">
+            <p className="font-medium">Error loading stories:</p>
+            <p className="text-sm">{error.message}</p>
+          </div>
+        )}>
           <StoriesList />
         </ErrorBoundary>
       )}
@@ -81,7 +89,15 @@ export default function MainFeed({ userId }: MainFeedProps) {
           <CreatePost 
             onPostCreated={handlePostCreated} 
             createPost={async (content: string, type: string, mediaUrl?: string) => {
-              await createPost({ content, type, mediaUrl });
+              try {
+                console.log("Creating post with:", { content, type, mediaUrl });
+                const result = await createPost({ content, type, mediaUrl });
+                console.log("Post creation succeeded:", result);
+                return result;
+              } catch (err) {
+                console.error("Post creation failed:", err);
+                throw err;
+              }
             }} 
           />
         </div>
@@ -120,7 +136,15 @@ export default function MainFeed({ userId }: MainFeedProps) {
           <>
             <div className="space-y-4">
               {posts.map((post) => (
-                <ErrorBoundary key={post.id} fallback={<div className="text-red-500">Error loading post</div>}>
+                <ErrorBoundary 
+                  key={post.id} 
+                  fallbackRender={({error}) => (
+                    <div className="text-red-500 p-4 bg-red-50 rounded-lg">
+                      <p className="font-medium">Error loading post:</p>
+                      <p className="text-sm">{error.message}</p>
+                    </div>
+                  )}
+                >
                   <Post
                     post={post}
                     onLike={likePost}

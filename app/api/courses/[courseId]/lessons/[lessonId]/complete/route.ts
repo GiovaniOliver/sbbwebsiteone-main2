@@ -8,127 +8,79 @@ export async function POST(
   req: Request,
   { params }: { params: { courseId: string; lessonId: string } }
 ) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = createRouteHandlerClient({ 
+    cookies: () => cookieStore 
+  })
   
   try {
-    const user = await ensureUserExists()
-    if (!user) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
       return NextResponse.json<ApiResponse<null>>({
         success: false,
         error: 'Unauthorized'
       }, { status: 401 })
     }
 
-    // Check if user is enrolled in the course
-    const { data: enrollment, error: enrollmentError } = await supabase
-      .from('enrollments')
+    const userId = session.user.id
+    const { courseId, lessonId } = params
+    
+    // First verify the lesson exists and belongs to the course
+    const { data: lesson, error: lessonError } = await supabase
+      .from('lessons')
       .select('*')
-      .eq('user_id', user.id)
-      .eq('course_id', params.courseId)
+      .eq('id', lessonId)
+      .eq('course_id', courseId)
       .single()
-
-    if (enrollmentError || !enrollment) {
+      
+    if (lessonError || !lesson) {
       return NextResponse.json<ApiResponse<null>>({
         success: false,
-        error: 'User is not enrolled in this course'
-      }, { status: 403 })
+        error: 'Lesson not found'
+      }, { status: 404 })
     }
-
-    // Create or update lesson progress
-    const { data: existingProgress, error: progressError } = await supabase
-      .from('lesson_progress')
+    
+    // Check if the user has already completed this lesson
+    const { data: existingCompletion, error: checkError } = await supabase
+      .from('lesson_completions')
       .select('*')
-      .eq('lesson_id', params.lessonId)
-      .eq('enrollment_id', enrollment.id)
-      .single()
-
-    if (!existingProgress) {
-      const { error: insertError } = await supabase
-        .from('lesson_progress')
-        .insert({
-          lesson_id: params.lessonId,
-          enrollment_id: enrollment.id,
-          completed: true,
-          completed_at: new Date().toISOString()
-        })
-
-      if (insertError) throw insertError
-    } else {
-      const { error: updateError } = await supabase
-        .from('lesson_progress')
-        .update({
-          completed: true,
-          completed_at: new Date().toISOString()
-        })
-        .eq('lesson_id', params.lessonId)
-        .eq('enrollment_id', enrollment.id)
-
-      if (updateError) throw updateError
+      .eq('user_id', userId)
+      .eq('lesson_id', lessonId)
+      .maybeSingle()
+      
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError
     }
-
-    // Check if all lessons are completed
-    const { data: completedLessons, error: completedError } = await supabase
-      .from('lesson_progress')
-      .select('lesson_id')
-      .eq('enrollment_id', enrollment.id)
-      .eq('completed', true)
-
-    if (completedError) throw completedError
-
-    const { data: totalLessons, error: totalError } = await supabase
-      .from('lessons')
-      .select('id')
-      .eq('course_id', params.courseId)
-
-    if (totalError) throw totalError
-
-    // Update enrollment progress
-    const progress = Math.round((completedLessons.length / totalLessons.length) * 100)
-    const completed = progress === 100
-
-    const { error: enrollmentUpdateError } = await supabase
-      .from('enrollments')
-      .update({
-        progress,
-        completed,
-        completed_at: completed ? new Date().toISOString() : null
+    
+    if (existingCompletion) {
+      // Already completed - just return the existing record
+      return NextResponse.json(existingCompletion)
+    }
+    
+    // Record the completion
+    const { data: completion, error: completionError } = await supabase
+      .from('lesson_completions')
+      .insert({
+        user_id: userId,
+        lesson_id: lessonId,
+        course_id: courseId,
+        completed_at: new Date().toISOString()
       })
-      .eq('id', enrollment.id)
-
-    if (enrollmentUpdateError) throw enrollmentUpdateError
-
-    // If course is completed, create certificate
-    if (completed) {
-      const { data: existingCertificate, error: certificateError } = await supabase
-        .from('certificates')
-        .select('*')
-        .eq('enrollment_id', enrollment.id)
-        .single()
-
-      if (certificateError && certificateError.code !== 'PGRST116') throw certificateError
-
-      if (!existingCertificate) {
-        const { error: insertCertError } = await supabase
-          .from('certificates')
-          .insert({
-            enrollment_id: enrollment.id,
-            user_id: user.id,
-            course_id: params.courseId,
-            issued_at: new Date().toISOString()
-          })
-
-        if (insertCertError) throw insertCertError
-      }
+      .select()
+      .single()
+      
+    if (completionError) {
+      throw completionError
     }
-
+    
     return NextResponse.json<ApiResponse<null>>({
       success: true
     })
   } catch (error) {
-    console.error('Error completing lesson:', error)
+    console.error('Error marking lesson as completed:', error)
     return NextResponse.json<ApiResponse<null>>({
       success: false,
-      error: 'Failed to complete lesson'
-    })
+      error: 'Failed to mark lesson as completed'
+    }, { status: 500 })
   }
 } 

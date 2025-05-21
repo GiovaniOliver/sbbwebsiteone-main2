@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar"
-import { Button } from "@/app/components/ui/button"
-import { Card } from "@/app/components/ui/card"
+import { useState, useEffect } from 'react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/molecules/display/Avatar'
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Card } from '@/app/components/molecules/cards/Card'
 import { Bookmark, MessageCircle, MoreHorizontal, Pencil, Share2, ThumbsUp, Trash2 } from 'lucide-react'
+import { getSupabaseClient } from '@/hooks'
 import Image from "next/image"
 import Link from "next/link"
 import { Route } from 'next'
@@ -13,13 +14,30 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu"
-import { Textarea } from "@/app/components/ui/textarea"
-import { toast } from "@/app/components/ui/use-toast"
+} from "@/app/components/molecules/navigation/DropdownMenuPrimitive"
+import { Textarea } from "@/app/components/atoms/inputs/Textarea"
+import { useToast } from "@/app/components/shared"
 import { ChangeEvent } from 'react'
+import LikesList from './LikesList'
+import CommentsModal from './CommentsModal'
+import { cn } from '@/lib/utils'
+import { Dialog, DialogTrigger } from '@/app/components/molecules/feedback/Dialog'
+
+// Add custom CSS to hide duplicate buttons
+const styles = `
+  .post-card > div > .post-interaction-buttons ~ div {
+    display: none !important;
+  }
+`;
+
+interface PostLike {
+  user_id: string;
+  post_id?: string;
+  created_at?: string;
+}
 
 interface PostProps {
-  post: PostWithRelations;
+  post: any; // Use any temporarily until we fix the interface properly
   onLike: (postId: string) => Promise<void>;
   onUnlike: (postId: string) => Promise<void>;
   onUpdate: (postId: string, content: string) => Promise<void>;
@@ -38,11 +56,48 @@ export default function Post({
   onRemoveBookmark 
 }: PostProps) {
   const { user } = useUser();
-  const isLiked = user ? post.likes.some((like) => like.userId === user.id) : false;
+  const supabase = getSupabaseClient();
+  const { toast } = useToast();
+  // Safely check if user has liked the post
+  const isLiked = user ? 
+    Array.isArray(post.likes) && 
+    post.likes.some((like: PostLike) => like.user_id === user.id) : 
+    false;
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content || '');
-  const isAuthor = user?.id === post.userId;
+  const isAuthor = user?.id === post.author_id;
+
+  // Check if post is already bookmarked when component loads
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (!user || !post?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('bookmarks')
+          .select()
+          .eq('user_id', user.id)
+          .eq('content_id', post.id)
+          .eq('content_type', 'post')
+          .maybeSingle();
+        
+        if (error) {
+          // Handle database error more gracefully
+          console.warn(`Bookmark status check failed: ${error.message || 'Unknown error'}`);
+          return;
+        }
+        
+        setIsBookmarked(!!data);
+      } catch (err) {
+        // Improved error handling with type checks
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        console.warn(`Error checking bookmark status: ${errorMessage}`);
+      }
+    };
+    
+    checkBookmarkStatus();
+  }, [user, post?.id, supabase]);
 
   const handleLike = async () => {
     if (!user) return;
@@ -62,18 +117,38 @@ export default function Post({
   };
 
   const handleBookmark = async () => {
-    if (!user) return;
+    if (!user || !post?.id) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to bookmark posts",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       if (isBookmarked) {
         await onRemoveBookmark(post.id);
+        setIsBookmarked(false);
+        toast({
+          title: "Post Removed",
+          description: "Post removed from your bookmarks",
+        });
       } else {
         await onBookmark(post.id);
+        setIsBookmarked(true);
+        toast({
+          title: "Post Saved",
+          description: "Post added to your bookmarks",
+        });
       }
-      setIsBookmarked(!isBookmarked);
     } catch (error) {
+      // Improved error handling with type checking
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn(`Bookmark error: ${errorMessage}`);
       toast({
         title: "Error",
-        description: "Failed to bookmark/unbookmark post",
+        description: "Failed to update bookmark",
         variant: "destructive",
       });
     }
@@ -114,16 +189,28 @@ export default function Post({
 
   const handleShare = async () => {
     try {
-      await navigator.share({
-        title: `Post by ${post.author.username || 'Anonymous'}`,
-        text: post.content || '',
-        url: `${window.location.origin}/post/${post.id}`,
-      });
+      // Try using the Web Share API first
+      if (navigator.share) {
+        await navigator.share({
+          title: `Post by ${post.users?.username || 'Anonymous'}`,
+          text: post.content || '',
+          url: `${window.location.origin}/post/${post.id}`,
+        });
+      } else {
+        // Fallback for browsers that don't support the Web Share API
+        // Copy the link to clipboard
+        await navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+        toast({
+          title: "Link copied",
+          description: "Post link copied to clipboard!",
+        });
+      }
     } catch (error) {
       // Handle share error or fallback
+      console.error('Share error:', error);
       toast({
-        title: "Error",
-        description: "Failed to share post",
+        title: "Sharing failed",
+        description: "Could not share this post. Try copying the URL manually.",
         variant: "destructive",
       });
     }
@@ -144,125 +231,222 @@ export default function Post({
   };
 
   // Calculate counts
-  const likesCount = post.likes.length;
-  const commentsCount = post.comments?.length ?? 0;
+  const likesCount = post.likes?.length || post.likes_count || 0;
+  const commentsCount = post.comments?.length || post.comments_count || 0;
 
-  const username = post.author.username || 'Anonymous';
+  const username = post.users?.username || 'Anonymous';
   const userInitial = username[0] || 'A';
 
+  // Create event handler to prevent event propagation
+  const stopPropagation = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
-    <Card className="mb-4 overflow-hidden">
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Link href={`/profile/${post.userId}` as Route}>
-              <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
-                <AvatarImage src={post.author.imageUrl || undefined} alt={username} />
-                <AvatarFallback>{userInitial}</AvatarFallback>
-              </Avatar>
-            </Link>
-            <div>
-              <Link href={`/profile/${post.author.id}` as Route}>
-                <p className="font-semibold hover:text-blue-600 transition-colors cursor-pointer">
-                  {username}
-                </p>
+    <>
+      {/* Add style to hide external buttons */}
+      <style jsx global>{`
+        .post-card + div:not(.post-card) {
+          display: none !important;
+        }
+        .post-card + ul {
+          display: none !important;
+        }
+      `}</style>
+      
+      <Card className="post-card mb-4 overflow-hidden bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" onClick={stopPropagation}>
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Link href={`/profile/${post.author_id}` as Route}>
+                <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+                  <AvatarImage src={post.users?.avatar_url || undefined} alt={username} />
+                  <AvatarFallback className="bg-blue-600 text-white">{userInitial}</AvatarFallback>
+                </Avatar>
               </Link>
-              <p className="text-sm text-gray-500">
-                {formatDate(new Date(post.createdAt))}
-              </p>
+              <div>
+                <Link href={`/profile/${post.author_id}` as Route}>
+                  <p className="font-semibold hover:text-blue-600 transition-colors cursor-pointer text-gray-900 dark:text-gray-100">
+                    {username}
+                  </p>
+                </Link>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {formatDate(new Date(post.created_at))}
+                </p>
+              </div>
             </div>
+            {isAuthor && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2 text-gray-700 dark:text-gray-300">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <DropdownMenuItem onClick={() => setIsEditing(true)} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDelete} className="text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
-          {isAuthor && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
+          {isEditing ? (
+            <div className="mt-4 space-y-4">
+              <Textarea
+                value={editContent}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setEditContent(e.target.value)}
+                className="min-h-[100px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsEditing(false)} className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
+                  Cancel
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDelete} className="text-red-600">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Save
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-2 whitespace-pre-wrap text-gray-800 dark:text-gray-200">{post.content || ''}</p>
           )}
         </div>
-        {isEditing ? (
-          <div className="mt-4 space-y-4">
-            <Textarea
-              value={editContent}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setEditContent(e.target.value)}
-              className="min-h-[100px]"
+
+        {(post.type === 'image' || post.type === 'photo') && post.images && Array.isArray(post.images) && post.images.length > 0 && (
+          <div className="relative aspect-auto">
+            <Image
+              src={post.images[0]}
+              alt="Post image"
+              width={800}
+              height={600}
+              className="w-full max-h-[600px] object-contain bg-gray-50 dark:bg-gray-900"
+              priority={false}
+              unoptimized={false}
+              onError={(e) => {
+                // Handle broken images gracefully
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/images/placeholder-image.svg'; // Use SVG placeholder
+              }}
             />
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEdit}>
-                Save
-              </Button>
-            </div>
           </div>
-        ) : (
-          <p className="mt-2 whitespace-pre-wrap">{post.content || ''}</p>
         )}
-      </div>
 
-      {post.type === 'image' && post.mediaUrl && (
-        <div className="relative aspect-square">
-          <Image
-            src={post.mediaUrl}
-            alt="Post image"
-            fill
-            className="object-cover"
-          />
-        </div>
-      )}
+        {post.type === 'video' && post.images && Array.isArray(post.images) && post.images.length > 0 && (
+          <div className="relative aspect-auto bg-black">
+            <video
+              src={post.images[0]}
+              controls
+              controlsList="nodownload"
+              className="w-full max-h-[600px] object-contain"
+              onError={(e) => {
+                // Handle video error gracefully
+                console.error('Video failed to load:', e);
+                const target = e.target as HTMLVideoElement;
+                target.classList.add('error');
+                const parent = target.parentElement;
+                if (parent) {
+                  parent.innerHTML += `
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-center p-4">
+                      <div>
+                        <p>Video could not be loaded</p>
+                        <p class="text-sm text-gray-400">The video might have been removed or is inaccessible</p>
+                      </div>
+                    </div>
+                  `;
+                }
+              }}
+            />
+          </div>
+        )}
 
-      {post.type === 'video' && post.mediaUrl && (
-        <div className="relative aspect-video">
-          <video
-            src={post.mediaUrl}
-            controls
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+        {post.type === 'article' && (
+          <div className="border p-4 rounded-lg bg-gray-50 dark:bg-gray-900 my-2">
+            <h3 className="text-lg font-semibold">{post.title || 'Article'}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 my-2">
+              {post.content?.substring(0, 150)}
+              {(post.content?.length || 0) > 150 ? '...' : ''}
+            </p>
+            <Button variant="outline" size="sm" className="mt-2">
+              Read Full Article
+            </Button>
+          </div>
+        )}
 
-      <div className="flex items-center justify-between p-4">
-        <div className="flex gap-4">
+        {/* Post interaction buttons */}
+        <div className="post-interaction-buttons flex items-center justify-between p-4">
+          <div className="flex gap-4">
+            <div className="flex items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={cn(
+                  "text-gray-700 dark:text-gray-300",
+                  isLiked && "text-blue-600 dark:text-blue-400"
+                )}
+                onClick={handleLike}
+              >
+                <ThumbsUp className="mr-2 h-4 w-4" />
+                <span>{likesCount}</span>
+              </Button>
+              
+              {likesCount > 0 && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="p-0 px-1 h-6 text-gray-700 dark:text-gray-300 hover:bg-transparent">
+                      <span className="text-xs underline">View</span>
+                    </Button>
+                  </DialogTrigger>
+                  <LikesList postId={post.id} likesCount={likesCount} />
+                </Dialog>
+              )}
+            </div>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-gray-700 dark:text-gray-300" 
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  <span>{commentsCount}</span>
+                </Button>
+              </DialogTrigger>
+              <CommentsModal postId={post.id} commentsCount={commentsCount || 0} />
+            </Dialog>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-700 dark:text-gray-300" 
+              onClick={handleShare}
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share
+            </Button>
+          </div>
+          
           <Button
             variant="ghost"
             size="sm"
-            className={isLiked ? 'text-blue-600' : ''}
-            onClick={handleLike}
+            className={cn(
+              "p-2 text-gray-700 dark:text-gray-300",
+              isBookmarked && "text-yellow-600 dark:text-yellow-400"
+            )}
+            onClick={handleBookmark}
+            disabled={!user}
+            title={user ? (isBookmarked ? "Remove from bookmarks" : "Save to bookmarks") : "Log in to bookmark"}
           >
-            <ThumbsUp className="mr-2 h-4 w-4" />
-            {likesCount} {likesCount === 1 ? 'Like' : 'Likes'}
-          </Button>
-          <Button variant="ghost" size="sm">
-            <MessageCircle className="mr-2 h-4 w-4" />
-            {commentsCount} {commentsCount === 1 ? 'Comment' : 'Comments'}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleShare}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
+            <Bookmark className={isBookmarked ? "h-4 w-4 fill-current" : "h-4 w-4"} />
           </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={isBookmarked ? 'text-blue-600' : ''}
-          onClick={handleBookmark}
-        >
-          <Bookmark className="h-4 w-4" />
-        </Button>
-      </div>
-    </Card>
+      </Card>
+    </>
   );
 }

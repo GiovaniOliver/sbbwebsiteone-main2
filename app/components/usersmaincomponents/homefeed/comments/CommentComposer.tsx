@@ -2,9 +2,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Button } from '../../../ui/shared/button'
-import { Textarea } from '../../../ui/shared/textarea'
-import { Avatar, AvatarFallback, AvatarImage } from '../../../ui/shared/avatar'
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Textarea } from '@/app/components/atoms/inputs/Textarea'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/molecules/display/Avatar'
 import { useUser } from '@/hooks/useUser'
 import { ImageIcon, SmileIcon, AtSign, Link2, Bold, Italic, Send } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -139,11 +139,11 @@ export default function CommentComposer({
   if (!user) return null
 
   return (
-    <div className="bg-white rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
       <div className="flex gap-3">
         <Avatar>
           <AvatarImage src={user.avatar_url || ''} alt={user.username || user.email} />
-          <AvatarFallback>{user.username?.[0] || user.email?.[0]}</AvatarFallback>
+          <AvatarFallback className="bg-blue-600 text-white">{user.username?.[0] || user.email?.[0]}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-3">
           <Textarea
@@ -152,7 +152,7 @@ export default function CommentComposer({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="min-h-[100px] resize-none"
+            className="min-h-[100px] resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
           />
 
           {previewUrls.length > 0 && ( 
@@ -166,8 +166,7 @@ export default function CommentComposer({
                   />
                   <Button
                     variant="destructive"
-                    size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
+                    className="absolute top-1 right-1 h-6 w-6 p-0"
                     onClick={() => removeAttachment(index)}
                   >
                     ×
@@ -181,7 +180,8 @@ export default function CommentComposer({
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm" 
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => fileInputRef.current?.click()}
                 title="Attach media"
               >
@@ -189,7 +189,8 @@ export default function CommentComposer({
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm" 
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 title="Add emoji"
               >
@@ -197,73 +198,59 @@ export default function CommentComposer({
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                onClick={() => setContent(prev => `${prev}@`)}
+                size="sm" 
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 title="Mention user"
               >
                 <AtSign className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                onClick={() => setContent(prev => `${prev}[]()`)}
+                size="sm" 
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 title="Add link"
               >
                 <Link2 className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setContent(prev => `**${prev}**`)}
-                title="Bold"
-              >
-                <Bold className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setContent(prev => `*${prev}*`)}
-                title="Italic"
-              >
-                <Italic className="h-4 w-4" />
-              </Button>
             </div>
-            <Button
+            <Button 
               onClick={handleSubmit}
-              disabled={isSubmitting || (!content.trim() && attachments.length === 0)}
-              className={cn(
-                "gap-2",
-                isSubmitting && "opacity-50 cursor-not-allowed"
-              )}
+              disabled={(!content.trim() && attachments.length === 0) || isSubmitting}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {isSubmitting ? "Posting..." : "Post"}
-              <Send className="h-4 w-4" />
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2" />
+                  Posting...
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <Send className="h-4 w-4 mr-2" />
+                  Post
+                </div>
+              )}
             </Button>
           </div>
-
-          {showEmojiPicker && (
-            <div className="absolute mt-2">
-              <EmojiPicker
-                onEmojiSelect={(emoji: string) => {
-                  setContent(prev => prev + emoji)
-                  setShowEmojiPicker(false)
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
-
       <input
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept="image/*,video/*,.gif"
-        multiple
         onChange={handleFileSelect}
-        title="Upload media"
-        aria-label="Upload media"
+        accept="image/*,video/*,image/gif"
+        multiple
       />
+      {showEmojiPicker && (
+        <div className="relative mt-2">
+          <div className="absolute z-10 bottom-full left-0">
+            <EmojiPicker onEmojiSelect={(emoji) => {
+              setContent(prev => prev + emoji)
+              setShowEmojiPicker(false)
+            }} />
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

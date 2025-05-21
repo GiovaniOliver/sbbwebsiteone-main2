@@ -3,19 +3,19 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEvents } from '@/app/hooks/useEvents'
-import { Button } from '@/app/components/ui/button'
-import { Input } from '@/app/components/ui/input'
-import { Textarea } from '@/app/components/ui/textarea'
-import { Switch } from '@/app/components/ui/switch'
-import { Label } from '@/app/components/ui/label'
-import { toast } from '@/app/components/ui/use-toast'
-import { Calendar } from '@/app/components/ui/calendar'
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Input } from '@/app/components/atoms/inputs/Input'
+import { Textarea } from '@/app/components/atoms/inputs/Textarea'
+import { Switch } from '@/app/components/atoms/inputs/Switch'
+import { Label } from '@/app/components/atoms/feedback/Label'
+import { toast } from '@/app/components/shared'
+import { Calendar } from '@/app/components/molecules/inputs/Calendar'
 import { format } from 'date-fns'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/app/components/ui/popover'
+} from '@/app/components/molecules/overlay/Popover'
 import { cn } from '@/backend/lib/utils/utils'
 import { CalendarIcon } from 'lucide-react'
 

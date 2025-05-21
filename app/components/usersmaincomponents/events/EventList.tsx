@@ -6,17 +6,17 @@ import { useEvents } from '@/app/hooks/useEvents'
 import { Calendar, MapPin, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { Button } from '@/app/components/ui/button'
-import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Card } from '@/app/components/molecules/cards/Card'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu'
-import { useUser } from '@/app/hooks/useUser'
+} from '@/app/components/molecules/navigation/DropdownMenuPrimitive'
+import { useUser } from '@/hooks/useUser'
 import { useRouter } from 'next/navigation'
-import { toast } from '@/app/components/ui/use-toast'
+import { toast } from '@/app/components/shared'
 import { EventWithRelations } from '@/backend/lib/types/event'
 
 export function EventList() {

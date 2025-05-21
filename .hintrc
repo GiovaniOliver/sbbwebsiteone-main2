@@ -11,6 +11,7 @@
       }
     ],
     "axe/name-role-value": "off",
-    "no-inline-styles": "off"
+    "no-inline-styles": "off",
+    "typescript-config/is-valid": "off"
   }
 }

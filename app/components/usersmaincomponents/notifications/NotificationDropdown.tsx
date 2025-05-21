@@ -2,25 +2,47 @@
 
 import { useState } from 'react'
 import { Bell } from 'lucide-react'
-import { Button } from '@/app/components/ui/button'
-import { Badge } from '@/app/components/ui/badge'
+import { Button } from '@/app/components/atoms/buttons/Button'
+import { Badge } from '@/app/components/atoms/display/Badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu'
-import { ScrollArea } from '@/app/components/ui/scroll-area'
-import { useNotifications, Notification } from '@/hooks/useNotifications'
+} from '@/app/components/molecules/navigation/DropdownMenuPrimitive'
+import { ScrollArea } from '@/app/components/molecules/overlay/ScrollArea'
+import { useNotifications } from '@/hooks/useNotifications'
 
+// Define a more complete Notification interface that matches the actual usage
+interface Notification {
+  id: string
+  userId: string
+  type: string // Use string instead of enum to allow all types
+  content: string
+  read: boolean
+  createdAt: string
+  updatedAt: string
+  referenceId?: string
+  fromUserId?: string
+  eventId?: string
+  metadata?: {
+    postId?: string
+  }
+  message?: string // Added since it's used in the component
+}
 
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { Route } from 'next'
 
 export function NotificationDropdown() {
-  const { notifications = [], unreadCount = 0, isLoading, markAsRead } = useNotifications()
+  const { notifications = [], markAsRead, isLoading } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
+  
+  // Calculate unread count from notifications array
+  const unreadCount = Array.isArray(notifications) 
+    ? notifications.filter(n => !n.read).length 
+    : 0
 
   const handleMarkAsRead = () => {
     const unreadIds = Array.isArray(notifications) 
@@ -50,7 +72,7 @@ export function NotificationDropdown() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="sm" className="relative p-2">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge

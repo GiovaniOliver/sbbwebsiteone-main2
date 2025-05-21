@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useEventSearch } from '@/hooks/useEventSearch'
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Calendar } from '@/app/components/ui/calendar';
+import { Button } from '@/app/components/atoms/buttons/Button';
+import { Input } from '@/app/components/atoms/inputs/Input';
+import { Calendar } from '@/app/components/molecules/inputs/Calendar';
 import {
   Select,
   SelectContent,

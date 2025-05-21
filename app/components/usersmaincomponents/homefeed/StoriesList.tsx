@@ -2,9 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Card } from '@/app/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
-import { Skeleton } from '@/app/components/ui/skeleton'
+import { Card } from '@/app/components/molecules/cards/Card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/molecules/display/Avatar'
+import { Skeleton } from '@/app/components/atoms/feedback/Skeleton'
 import { Plus } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { memo } from 'react'
@@ -79,11 +79,7 @@ export default function StoriesList() {
         .from('stories')
         .select(`
           id,
-          user:profiles!user_id (
-            id,
-            username,
-            avatar_url
-          ),
+          user:user_id (id, username, avatar_url),
           thumbnail_url,
           created_at,
           expires_at
